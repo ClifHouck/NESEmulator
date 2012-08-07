@@ -164,7 +164,7 @@ execute()
         // BC nn nn  nz----  4*  LDY nnnn,X  Load Y with Absolute,X    Y=[nnnn+X]
         case 0xBC:
             setY(m_memory.byteAt(wordOperand + X()));
-            setPC(PC() + 2);
+            setPC(PC() + 3);
             break;
 
         // Store Register in Memory
@@ -874,6 +874,8 @@ execute()
         case 0xEA:
             setPC(PC() + 2);
             break;
+        
+        // FIXME: Do I need to implement the 'Illegal' opcodes or deal with them somehow?
     }
 }
 
@@ -1104,6 +1106,10 @@ conditionalBranch(bool condition, const unsigned char& destination)
     if (condition)
     {
         setPC(PC() + 2 + static_cast<signed char>(destination));
+    }
+    else
+    {
+        setPC(PC() + 2);
     }
 }
 
