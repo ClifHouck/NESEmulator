@@ -3,21 +3,29 @@
    http://nocash.emubase.de/everynes.htm#cpu65xxmicroprocessor
 */
 
+#ifndef CPU65XX_H
+#define CPU65XX_H
+
+#include "DataTypes.hpp"
+
 #include <bitset>
 #include <string>
+#include <functional>
 
-#define MAIN_MEM_SIZE 64 * 1024
+#define MAIN_MEM_SIZE (64 * 1024)
 
 class Cpu65XX
 {
     public:
         Cpu65XX();
-        Cpu65XX(unsigned char * toLoad, unsigned int size);
+        Cpu65XX(u8_byte * toLoad, unsigned int size);
+
+        ~Cpu65XX();
 
         class StatusRegister {
             public:
                 StatusRegister();
-                StatusRegister(unsigned char&);
+                StatusRegister(u8_byte&);
 
                 // accessors
                 bool carry()        const;
@@ -28,7 +36,7 @@ class Cpu65XX
                 bool overflow()     const;
                 bool negative()     const;
 
-                unsigned char value() const;
+                u8_byte value() const;
 
                 // mutators
                 void setCarry(bool);
@@ -47,68 +55,125 @@ class Cpu65XX
         class Memory {
             public: 
                 Memory();
-                Memory(unsigned char * toLoad, unsigned int size);
+                Memory(u8_byte * toLoad, unsigned int size);
                 
                 // mutators
-                unsigned char&  byteAt(const unsigned short&);
-                unsigned short& wordAt(const unsigned short&);
+                u8_byte&  byteAt(const u16_word& address);
+                u16_word& wordAt(const u16_word& address);
 
             private:
-                unsigned char m_memory[MAIN_MEM_SIZE];
+                u16_word trueAddress(const u16_word&) const;
+
+                u8_byte m_memory[MAIN_MEM_SIZE];
+        }; 
+
+        class Instruction {
+            public:
+                Instruction();
+                Instruction(
+                        u8_byte opcode,
+                        u8_byte length,
+                        const char* mnemonic,
+                        std::function<unsigned int()>& cycleFunc,
+                        std::function<void ()>& workFunc
+                );
+
+                const u8_byte&      opcode()    const;
+                const u8_byte&      length()    const;
+                unsigned int        cycles()    const;
+                const std::string&  mnemonic()  const;
+                void                apply()     const;
+
+            private:
+                u8_byte         m_opcode;
+                u8_byte         m_length;
+                std::function<unsigned int()> m_cycleFunction;
+                std::function<void ()>        m_workFunction;
+                std::string     m_mnemonic;
         };
 
-        void execute();
+        void tick();
+        void signalNMI();
 
         // accessors
-        const unsigned char&           A() const;
-        const unsigned char&           X() const;
-        const unsigned char&           Y() const;
-        const unsigned short&          PC() const;
-        const unsigned char&           S() const;
-        unsigned short                 stackPointer() const;
-        const StatusRegister& statusRegister() const;
+        const u8_byte&           A()  const;
+        const u8_byte&           X()  const;
+        const u8_byte&           Y()  const;
+        const u16_word&          PC() const;
+        const u8_byte&           S()  const;
+        u16_word                 stackPointer() const;
+        const StatusRegister&    statusRegister() const;
+
+
+        bool                     crossesPageBoundary(const u16_word& address) const;
+        bool                     conditionalBranchCrossesPageBoundary(const u8_byte& offset) const;
 
         std::string state() const;
+        std::string debugOutput();
 
         // mutators
-        void    setA(const unsigned char&);
-        void    setX(const unsigned char&);
-        void    setY(const unsigned char&);
-        void    setPC(const unsigned short&);
-        void    setS(const unsigned char&);
+        void    setA(const u8_byte&);
+        void    setX(const u8_byte&);
+        void    setY(const u8_byte&);
+        void    setPC(const u16_word&);
+        void    setS(const u8_byte&);
         void    setStatusRegister(const StatusRegister&);
 
-        void    handleRegisterAssignmentFlags(const unsigned char&);
+        u8_byte&  byteOperand();
+        u16_word& wordOperand();
 
-        unsigned char additionWithCarry(const unsigned char&, const unsigned char&);
-        unsigned char subtractionWithBorrow(const unsigned char&, const unsigned char&);
-        void          compare(const unsigned char&, const unsigned char&);
+        void    handleRegisterAssignmentFlags(const u8_byte&);
 
-        unsigned char shiftLeft(const unsigned char&);
-        unsigned char shiftRight(const unsigned char&);
+        u8_byte additionWithCarry(const u8_byte&, const u8_byte&);
+        u8_byte subtractionWithBorrow(const u8_byte&, const u8_byte&);
+        void    compare(const u8_byte&, const u8_byte&);
 
-        unsigned char rotateLeftThroughCarry(const unsigned char&);
-        unsigned char rotateRightThroughCarry(const unsigned char&);
+        u8_byte shiftLeft(const u8_byte&);
+        u8_byte shiftRight(const u8_byte&);
 
-        void setByte(unsigned char&, const unsigned char&);
+        u8_byte rotateLeftThroughCarry(const u8_byte&);
+        u8_byte rotateRightThroughCarry(const u8_byte&);
 
-        void bitTest(const unsigned char&, const unsigned char&);
+        void setByte(u8_byte&, const u8_byte&);
 
-        void conditionalBranch(bool condition, const unsigned char&);
+        void bitTest(const u8_byte&, const u8_byte&);
 
-        void pushStackByte(const unsigned char&);
-        void pushStackWord(const unsigned short&);
+        void conditionalBranch(bool condition, const u8_byte&);
 
-        unsigned char&   popStackByte();
-        unsigned short&  popStackWord();
+        // Stack operations
+        void pushStackByte(const u8_byte&);
+        void pushStackWord(const u16_word&);
+        u8_byte&   popStackByte();
+        u16_word&  popStackWord();
+
+        Memory&     memory();
 
     private:
+        void buildInstructionSet();
+
         // Registers
-        unsigned char           m_A;  // Accumulator
-        unsigned char           m_X;
-        unsigned char           m_Y;
-        unsigned short          m_PC; // Program counter
-        unsigned char           m_S;  // Stack pointer
-        StatusRegister m_status;
-        Memory         m_memory;
+        u8_byte           m_A;  // Accumulator
+        u8_byte           m_X;
+        u8_byte           m_Y;
+        u16_word          m_PC; // Program counter
+        u8_byte           m_S;  // Stack pointer
+        StatusRegister    m_status;
+
+        Memory            m_memory;
+
+        //Set of instructions used by the CPU
+        Instruction*      m_instructions;
+        // Cycles to wait until executing the current instruction.
+        unsigned int      m_downCycles; 
+        // The next instruction to run.
+        Instruction*      m_queuedInstruction;
+
+        // Has an NMI been requested? (This is likely the screen redraw NMI)
+        bool              m_NMI;
+        // IRQs requested?
+        bool              m_IRQ;
+
+        unsigned int      m_cycles;
 };
+
+#endif 

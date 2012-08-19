@@ -1,7 +1,7 @@
 #include <iostream>
 #include <limits>
 
-#include "Cpu65XX.hpp"
+#include "NesApp.hpp"
 
 unsigned char testProgram[] =
 {
@@ -16,15 +16,20 @@ unsigned char testProgram[] =
 
 int main(int argc, char** argv)
 {
+    NESApp nes;
+
+    return nes.onExecute();
+    /*
     Cpu65XX cpu(testProgram, sizeof(testProgram));
 
-    while (1) 
+        while (1) 
     {
         int c;
-        cpu.execute();
+        cpu.tick();
         std::cout << cpu.state() << std::endl;
         std::cin.ignore(std::numeric_limits <std::streamsize> ::max(), '\n');
     }
+    */
 
     return 0;
 }
