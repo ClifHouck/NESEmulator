@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include <algorithm>
 
 Cpu65XX::
 Cpu65XX() :
@@ -776,9 +777,9 @@ tick()
     // m_downCycles == 0
     // Execute queued instruction
     if (m_queuedInstruction) {
+        std::cout << debugOutput();
         u16_word lastPC = PC();
         m_queuedInstruction->apply();
-        std::cout << debugOutput();
         // TODO: This seems a bit hacky, as I feel each instruction should
         // decide for itself what needs to happen to the PC.
         if (PC() == lastPC) {
@@ -889,21 +890,28 @@ debugOutput()
     if (0 == m_queuedInstruction) { return std::string(); }
 
     std::stringstream output;
+    output.fill('0');
     output << std::hex << std::setw(4) << m_PC << "  ";
     unsigned int length = m_queuedInstruction->length();
     for (unsigned int i = 0; i < length; ++i) {
-        output << std::setw(2) << m_memory.byteAt(m_PC+i) << " ";
+        output << std::setw(2) << (int)m_memory.byteAt(m_PC+i) << " ";
     }
     int spaces = 7 - ((length - 1) * 3);
     output << std::string(spaces, ' ');
     output << m_queuedInstruction->mnemonic();
     output << std::string(28, ' ');
-    output << "A:" << A() << " X:" << X() << " Y:" << Y() 
-           << " P:" << statusRegister().value() 
-           << std::dec << " CYC:" << ((m_cycles*3) % 341)
-           << "SL:" << (((242 + ((m_cycles*3)/341)) % 260) - 1 ) << std::endl;
+    output << "A:"   << std::setw(2) << (int)A() 
+           << " X:"  << std::setw(2) << (int)X() 
+           << " Y:"  << std::setw(2) << (int)Y() 
+           << " P:"  << std::setw(2) << (int)statusRegister().value()
+           << " SP:" << std::setw(2) << (int)S();
+    output.fill(' ');
+    output << std::dec << " CYC:" << std::setw(3) << (m_cycles % 341)
+           << " SL:" << std::setw(3) <<  (((242 + ((m_cycles*3)/341)) % 260) - 1 ) << std::endl;
            
-    return output.str();
+    std::string upperCased = output.str();
+    std::transform(upperCased.begin(), upperCased.end(), upperCased.begin(), &toupper );
+    return upperCased;
 }
 
 std::string

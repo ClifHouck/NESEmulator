@@ -2,16 +2,26 @@
    Derived from http://wiki.nesdev.com/w/index.php/INES
 */
 
+#include "DataTypes.hpp"
+
 #include <string>
-#include <ifstream>
+#include <fstream>
 
 class iNESFile 
 {
     public:
+        static const unsigned int horizontalMirroring = 0;
+        static const unsigned int verticalMirroring   = 1;
+        static const unsigned int fourScreenMirroring = 2;
+
         iNESFile(const char* filename);
 
         void load();
         bool isGood() const;
+
+        std::string headerInfo() const;
+
+        const std::string& filename() const;
 
         bool isiNESFile()                   const;
         
@@ -37,6 +47,7 @@ class iNESFile
 
         // Flags 10
         // TODO...
+        char *          m_fileData;
 
     private:
         u8_byte m_banner[4];
@@ -48,7 +59,7 @@ class iNESFile
         u8_byte m_flags9;
         u8_byte m_flags10;
 
-        std::string filename;
-        ifstream    m_inFile;
-        char *      m_fileData;
+        std::string     m_filename;
+        std::ifstream   m_inFile;
+        unsigned int    m_fileSize;
 };
