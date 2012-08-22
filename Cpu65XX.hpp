@@ -11,6 +11,7 @@
 #include <bitset>
 #include <string>
 #include <functional>
+#include <map>
 
 #define MAIN_MEM_SIZE (64 * 1024)
 
@@ -74,21 +75,24 @@ class Cpu65XX
                         u8_byte opcode,
                         u8_byte length,
                         const char* mnemonic,
+                        std::function<std::string()>& dissasemblyFunc,
                         std::function<unsigned int()>& cycleFunc,
                         std::function<void ()>& workFunc
                 );
 
-                const u8_byte&      opcode()    const;
-                const u8_byte&      length()    const;
-                unsigned int        cycles()    const;
-                const std::string&  mnemonic()  const;
-                void                apply()     const;
+                const u8_byte&      opcode()        const;
+                const u8_byte&      length()        const;
+                unsigned int        cycles()        const;
+                const std::string&  mnemonic()      const;
+                std::string         disassembly()   const;
+                void                apply()         const;
 
             private:
                 u8_byte         m_opcode;
                 u8_byte         m_length;
                 std::function<unsigned int()> m_cycleFunction;
                 std::function<void ()>        m_workFunction;
+                std::function<std::string ()> m_disassemblyFunction;
                 std::string     m_mnemonic;
         };
 
@@ -150,6 +154,7 @@ class Cpu65XX
 
     private:
         void buildInstructionSet();
+        void buildDisassemblyFunctions();
 
         // Registers
         u8_byte           m_A;  // Accumulator
@@ -163,6 +168,7 @@ class Cpu65XX
 
         //Set of instructions used by the CPU
         Instruction*      m_instructions;
+        std::map<const char*, std::function<std::string ()> > m_disassemblyFunctions;
         // Cycles to wait until executing the current instruction.
         unsigned int      m_downCycles; 
         // The next instruction to run.
