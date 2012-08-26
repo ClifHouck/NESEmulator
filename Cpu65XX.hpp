@@ -36,6 +36,7 @@ class Cpu65XX
                 bool breakFlag()    const;
                 bool overflow()     const;
                 bool negative()     const;
+                bool unusedFlag()   const;
 
                 u8_byte value() const;
 
@@ -113,6 +114,7 @@ class Cpu65XX
         bool                     conditionalBranchCrossesPageBoundary(const u8_byte& offset) const;
 
         std::string state() const;
+        std::string statusRegisterState() const;
         std::string debugOutput();
 
         // mutators

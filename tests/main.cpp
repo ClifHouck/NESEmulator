@@ -22,7 +22,9 @@ int main(int argc, char ** argv) {
 
     while(1) {
         cpu.tick();
-        sleep(1);
+        if (cpu.PC() == 0x6CCE) {
+            break;
+        }
     }
 
     return 0;

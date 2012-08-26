@@ -43,10 +43,8 @@ load()
         // m_fileSize = m_inFile.tellg();
         // Bail out if the file is too small.
         if (m_fileSize < 16) {
-            std::cout << "iNESFile::load(): Too small: " << m_fileSize << " !\n";
             return;
         }
-        std::cout << "Filesize: " << m_fileSize << std::endl;
 
         m_fileData = new char[m_fileSize];
         m_inFile.read(m_fileData, m_fileSize);

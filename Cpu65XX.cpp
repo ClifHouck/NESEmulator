@@ -300,7 +300,7 @@ buildInstructionSet()
     // 8E nn nn  ------  4   STX nnnn    Store X in Absolute      [nnnn]=X
     workFunc    = [this] { m_memory.byteAt(wordOperand()) = X(); };
     disassemblyFunc = m_disassemblyFunctions["Absolute"];
-    m_instructions[0x85] = Instruction(0x85, 3, "STX", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x8E] = Instruction(0x8E, 3, "STX", disassemblyFunc, cycleFunc, workFunc);
     // 84 nn     ------  3   STY nn      Store Y in Zero Page     [nn]=Y
     cycleFunc   = [this] { return 3; }; 
     workFunc    = [this] { m_memory.byteAt(byteOperand()) = Y(); };
@@ -356,7 +356,7 @@ buildInstructionSet()
     // 6D nn nn  nzc--v  4   ADC nnnn    Add Absolute            A=A+C+[nnnn]
     workFunc    = [this] { setA(additionWithCarry(A(), m_memory.byteAt(wordOperand()))); };
     disassemblyFunc = m_disassemblyFunctions["Absolute"];
-    m_instructions[0x6D] = Instruction(0x85, 3, "ADC", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x6D] = Instruction(0x6D, 3, "ADC", disassemblyFunc, cycleFunc, workFunc);
     // 7D nn nn  nzc--v  4*  ADC nnnn,X  Add Absolute,X          A=A+C+[nnnn+X]
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand() + X()); }; 
     workFunc    = [this] { setA(additionWithCarry(A(), m_memory.byteAt(wordOperand() + X()))); };
@@ -1135,10 +1135,24 @@ debugOutput()
     output.fill(' ');
     output << std::dec << " CYC:" << std::setw(3) << (m_cycles % 341)
            << " SL:" << std::setw(3) <<  (((242 + ((m_cycles*3)/341)) % 260) - 1 ) << std::endl;
+
+    // output << statusRegisterState();
            
     std::string upperCased = output.str();
     std::transform(upperCased.begin(), upperCased.end(), upperCased.begin(), &toupper );
     return upperCased;
+}
+
+std::string
+Cpu65XX::
+statusRegisterState() const
+{
+    std::stringstream output;
+    output << "NV-BDIZC" << std::endl
+        << m_status.negative() << m_status.overflow() << m_status.unusedFlag() << m_status.breakFlag()
+        << m_status.decimalMode() << m_status.IRQDisable() << m_status.zero() 
+        << m_status.carry() << std::endl;
+    return output.str();
 }
 
 std::string
@@ -1248,7 +1262,7 @@ compare(const u8_byte& accumulator, const u8_byte& memory)
 {
     u8_byte result = accumulator - memory;
     m_status.setZero(result == 0);
-    m_status.setCarry(result > accumulator);
+    m_status.setCarry(accumulator >= memory);
     m_status.setNegative(result & 0x80);
 }
 
@@ -1306,8 +1320,8 @@ Cpu65XX::
 bitTest(const u8_byte& op1, const u8_byte& op2) 
 {
     u8_byte result = op1 & op2;
-    m_status.setNegative(result & 0x80);
-    m_status.setOverflow(result & 0x40);
+    m_status.setNegative(op2 & 0x80);
+    m_status.setOverflow(op2 & 0x40);
     m_status.setZero(result == 0);
 }
 
@@ -1346,7 +1360,7 @@ Cpu65XX::
 popStackByte()
 {
     setS(S() + 1);
-    return m_memory.byteAt(stackPointer() - 1);
+    return m_memory.byteAt(stackPointer());
 }
 
 u16_word& 
@@ -1354,7 +1368,8 @@ Cpu65XX::
 popStackWord()
 {
     setS(S() + 2);
-    return m_memory.wordAt(stackPointer() - 2);
+    std::cout << "Popping word " << std::hex << std::setw(4) << m_memory.wordAt(stackPointer()) << std::endl;
+    return m_memory.wordAt(stackPointer());
 }
 
 Cpu65XX::Memory&
@@ -1503,6 +1518,8 @@ disassembly() const
 Cpu65XX::StatusRegister::
 StatusRegister() 
 {
+    // IRQ disable flag seems to be 1 on startup...
+    m_status[2] = 1;
     // This flag is not used but always 1.
     m_status[5] = 1;
 }
@@ -1569,6 +1586,13 @@ Cpu65XX::StatusRegister::
 negative() const
 {
     return m_status[7];
+}
+
+bool
+Cpu65XX::StatusRegister::
+unusedFlag() const
+{
+    return m_status[5];
 }
 
 u8_byte
