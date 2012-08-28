@@ -5,6 +5,9 @@
 #include <sstream>
 #include <algorithm>
 
+// For some reason the stack appears to startup at 0xFD
+const u8_byte initialStackValue = 0xFD;
+
 Cpu65XX::
 Cpu65XX() :
     m_memory (),
@@ -12,7 +15,7 @@ Cpu65XX() :
     m_X (0),
     m_Y (0),
     m_PC (0),
-    m_S (0xFF),
+    m_S (initialStackValue),
     m_downCycles (0),
     m_cycles     (0),
     m_queuedInstruction (0)
@@ -28,7 +31,7 @@ Cpu65XX(u8_byte * toLoad, unsigned int size) :
         m_X (0),
         m_Y (0),
         m_PC (0),
-        m_S (0xFF),
+        m_S (initialStackValue),
         m_downCycles (0),
         m_queuedInstruction (0)
 {
@@ -511,41 +514,41 @@ buildInstructionSet()
     cycleFunc   = [this] { return 2; }; 
     workFunc    = [this] { setA(A() | byteOperand()); };
     disassemblyFunc = m_disassemblyFunctions["Immediate"];
-    m_instructions[0x09] = Instruction(0x09, 2, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x09] = Instruction(0x09, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 05 nn     nz----  3   ORA nn      OR Zero Page       A=A OR [nn]
     cycleFunc   = [this] { return 3; }; 
     workFunc    = [this] { setA(A() | m_memory.byteAt(byteOperand())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
-    m_instructions[0x05] = Instruction(0x05, 2, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x05] = Instruction(0x05, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 15 nn     nz----  4   ORA nn,X    OR Zero Page,X     A=A OR [nn+X]
     cycleFunc   = [this] { return 4; }; 
     workFunc    = [this] { setA(A() | m_memory.byteAt(byteOperand() + X())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
-    m_instructions[0x15] = Instruction(0x15, 2, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x15] = Instruction(0x15, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 0D nn nn  nz----  4   ORA nnnn    OR Absolute        A=A OR [nnnn]
     workFunc    = [this] { setA(A() | m_memory.byteAt(wordOperand())); };
     disassemblyFunc = m_disassemblyFunctions["Absolute"];
-    m_instructions[0x0D] = Instruction(0x0D, 3, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x0D] = Instruction(0x0D, 3, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 1D nn nn  nz----  4*  ORA nnnn,X  OR Absolute,X      A=A OR [nnnn+X]
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand() + X()); }; 
     workFunc    = [this] { setA(A() | m_memory.byteAt(wordOperand() + X())); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
-    m_instructions[0x1D] = Instruction(0x1D, 3, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x1D] = Instruction(0x1D, 3, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 19 nn nn  nz----  4*  ORA nnnn,Y  OR Absolute,Y      A=A OR [nnnn+Y]
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand() + Y()); }; 
     workFunc    = [this] { setA(A() | m_memory.byteAt(wordOperand() + Y())); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];
-    m_instructions[0x19] = Instruction(0x19, 3, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x19] = Instruction(0x19, 3, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 01 nn     nz----  6   ORA (nn,X)  OR (Indirect,X)    A=A OR [[nn+X]]
     cycleFunc   = [this] { return 6; }; 
     workFunc    = [this] { setA(A() | m_memory.byteAt(m_memory.wordAt(byteOperand() + X()))); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
-    m_instructions[0x01] = Instruction(0x01, 2, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x01] = Instruction(0x01, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 11 nn     nz----  5*  ORA (nn),Y  OR (Indirect),Y    A=A OR [[nn]+Y]
     cycleFunc   = [this] { return 5 + crossesPageBoundary(m_memory.wordAt(byteOperand()) + Y()); }; 
     workFunc    = [this] { setA(A() | m_memory.byteAt(m_memory.wordAt(byteOperand()) + Y())); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];
-    m_instructions[0x11] = Instruction(0x11, 2, "OR", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0x11] = Instruction(0x11, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
 
     // Compare
     // * Add one cycle if indexing crosses a page boundary.
@@ -943,7 +946,7 @@ buildInstructionSet()
     // F8        ----1-  2   SED         Set decimal mode            D=1
     cycleFunc   = [this] { return 2; };
     workFunc    = [this] { m_status.setDecimalMode(true); };
-    m_instructions[0xF8] = Instruction(0xF8, 1, "STA", disassemblyFunc, cycleFunc, workFunc);
+    m_instructions[0xF8] = Instruction(0xF8, 1, "SED", disassemblyFunc, cycleFunc, workFunc);
 
     // No Operation
     // EA        ------  2   NOP         No operation                No operation
@@ -1004,7 +1007,6 @@ tick()
     // m_downCycles == 0
     // Execute queued instruction
     if (m_queuedInstruction) {
-        std::cout << debugOutput();
         u16_word lastPC = PC();
         m_queuedInstruction->apply();
         // TODO: This seems a bit hacky, as I feel each instruction should
@@ -1017,10 +1019,9 @@ tick()
     // Fetch and queue the next instruction.
     const u8_byte& opcode = m_memory.byteAt(PC());
     m_queuedInstruction = &(m_instructions[opcode]);
+    std::cout << debugOutput();
     // Determine how long to wait until we execute it.
     m_downCycles = m_queuedInstruction->cycles();
-
-    m_cycles++;
 }
 
 void
@@ -1105,7 +1106,7 @@ bool
 Cpu65XX::
 conditionalBranchCrossesPageBoundary(const u8_byte& offset) const
 {
-    return ((PC() + offset) & 0xFF00) == (PC() & 0xFF00);
+    return ((PC() + offset) & 0xFF00) != (PC() & 0xFF00);
 }
 
 std::string
@@ -1133,7 +1134,7 @@ debugOutput()
            << " P:"  << std::setw(2) << (int)statusRegister().value()
            << " SP:" << std::setw(2) << (int)S();
     output.fill(' ');
-    output << std::dec << " CYC:" << std::setw(3) << (m_cycles % 341)
+    output << std::dec << " CYC:" << std::setw(3) << ((m_cycles*3) % 341)
            << " SL:" << std::setw(3) <<  (((242 + ((m_cycles*3)/341)) % 260) - 1 ) << std::endl;
 
     // output << statusRegisterState();
@@ -1239,6 +1240,7 @@ additionWithCarry(const u8_byte& op1, const u8_byte& op2)
     u16_word result = static_cast<u16_word>(op1) + static_cast<u8_byte>(m_status.carry()) + op2;
     m_status.setCarry(result > 0xFF);
     short signedResult = static_cast<short>(op1) + static_cast<short>(m_status.carry()) + static_cast<short>(op1);
+    //FIXME: This is wrong!
     m_status.setOverflow(signedResult > 127 || signedResult < -128);
     return static_cast<u8_byte>(result);
 }
@@ -1368,7 +1370,6 @@ Cpu65XX::
 popStackWord()
 {
     setS(S() + 2);
-    std::cout << "Popping word " << std::hex << std::setw(4) << m_memory.wordAt(stackPointer()) << std::endl;
     return m_memory.wordAt(stackPointer());
 }
 
