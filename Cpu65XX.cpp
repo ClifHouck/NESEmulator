@@ -340,13 +340,20 @@ buildInstructionSet()
     m_instructions[0x8C] = Instruction(0x8C, 3, "STY", disassemblyFunc, cycleFunc, workFunc);
 
     // Push/Pull
+    // Notes: PLA sets Z and N according to content of A. The B-flag and 
+    // unused flags cannot be changed by PLP, these flags are always written as "1" by PHP.
     // 48        ------  3   PHA         Push accumulator on stack        [S]=A
     cycleFunc   = [this] { return 3; }; 
     workFunc    = [this] { pushStackByte(A()); };
     disassemblyFunc = m_disassemblyFunctions["None"];
     m_instructions[0x48] = Instruction(0x48, 1, "PHA", disassemblyFunc, cycleFunc, workFunc);
     // 08        ------  3   PHP         Push processor status on stack   [S]=P
-    workFunc    = [this] { pushStackByte(statusRegister().value()); };
+    workFunc    = [this] { 
+        StatusRegister stat = StatusRegister(statusRegister());
+        // The PHP opcode always write "1" into the break. 
+        stat.setBreakFlag(true);
+        pushStackByte(stat.value());
+    };
     disassemblyFunc = m_disassemblyFunctions["None"];
     m_instructions[0x08] = Instruction(0x08, 1, "PHP", disassemblyFunc, cycleFunc, workFunc);
     // 68        nz----  4   PLA         Pull accumulator from stack      A=[S]
@@ -355,7 +362,11 @@ buildInstructionSet()
     disassemblyFunc = m_disassemblyFunctions["None"];
     m_instructions[0x68] = Instruction(0x68, 1, "PLA", disassemblyFunc, cycleFunc, workFunc);
     // 28        nzcidv  4   PLP         Pull processor status from stack P=[S]
-    workFunc    = [this] { setStatusRegister(StatusRegister(popStackByte())); };
+    workFunc    = [this] { 
+        StatusRegister stat = StatusRegister(popStackByte());
+        stat.setBreakFlag(StatusRegister().breakFlag());
+        setStatusRegister(stat); 
+    };
     disassemblyFunc = m_disassemblyFunctions["None"];
     m_instructions[0x28] = Instruction(0x28, 1, "PLP", disassemblyFunc, cycleFunc, workFunc);
 
@@ -1054,7 +1065,44 @@ buildInstructionSet()
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xB3] = Instruction(0xB3, 2, "LAX", disassemblyFunc, cycleFunc, workFunc);
 
-    //TODO: Rest of illegal opcodes...
+    //TODO: Combined ALU-Opcodes!!!
+
+    // Combined ALU-Opcodes
+    // Opcode high-bits, flags, commands:
+
+    // 00+yy        nzc---  SLO op   ASL+ORA   op=op SHL 1 // A=A OR op
+    // 20+yy        nzc---  RLA op   ROL+AND   op=op RCL 1 // A=A AND op
+    // 40+yy        nzc---  SRE op   LSR+EOR   op=op SHR 1 // A=A XOR op
+    // 60+yy        nzc--v  RRA op   ROR+ADC   op=op RCR 1 // A=A ADC op
+    // C0+yy        nzc---  DCP op   DEC+CMP   op=op-1     // A-op
+    // E0+yy        nzc--v  ISC op   INC+SBC   op=op+1     // A=A-op cy?
+
+    // Opcode low-bits, clock cycles, operands:
+
+    // 07+xx nn        5    nn       [nn]
+    // 17+xx nn        6    nn,X     [nn+X]
+    // 03+xx nn        8    (nn,X)   [WORD[nn+X]]
+    // 13+xx nn        8    (nn),Y   [WORD[nn]+Y]
+    // 0F+xx nn nn     6    nnnn     [nnnn]
+    // 1F+xx nn nn     7    nnnn,X   [nnnn+X]
+    // 1B+xx nn nn     7    nnnn,Y   [nnnn+Y]
+
+    // Other Illegal Opcodes
+
+    // 0B nn     nzc---  2  ANC #nn          AND+ASL  A=A AND nn
+    // 2B nn     nzc---  2  ANC #nn          AND+ROL  A=A AND nn
+    // 4B nn     nzc---  2  ALR #nn          AND+LSR  A=(A AND nn)*2  MUL2???
+    // 6B nn     nzc--v  2  ARR #nn          AND+ROR  A=(A AND nn)/2
+    // 8B nn     nz----  2  XAA #nn    ((2)) TXA+AND  A=X AND nn
+    // AB nn     nz----  2  LAX #nn    ((2)) LDA+TAX  A,X=nn
+    // CB nn     nzc---  2  AXS #nn          CMP+DEX  X=A AND X -nn  cy?
+    // EB nn     nzc--v  2  SBC #nn          SBC+NOP  A=A-nn         cy?
+    // 93 nn     ------  6  AHX (nn),Y ((1))          [WORD[nn]+Y] = A AND X AND H
+    // 9F nn nn  ------  5  AHX nnnn,Y ((1))          [nnnn+Y] = A AND X AND H
+    // 9C nn nn  ------  5  SHY nnnn,X ((1))          [nnnn+X] = Y AND H
+    // 9E nn nn  ------  5  SHX nnnn,Y ((1))          [nnnn+Y] = X AND H
+    // 9B nn nn  ------  5  TAS nnnn,Y ((1)) STA+TXS  S=A AND X  // [nnnn+Y]=S AND H
+    // BB nn nn  nz----  4* LAS nnnn,Y       LDA+TSX  A,X,S = [nnnn+Y] AND S
 
     // NUL/NOP and KIL/JAM/HLT
 
@@ -1290,8 +1338,13 @@ debugOutput()
     for (unsigned int i = 0; i < length; ++i) {
         output << std::setw(2) << (int)m_memory.byteAt(m_PC+i) << " ";
     }
-    int spaces = 7 - ((length - 1) * 3);
+    
+    bool illegalInstruction = m_illegalInstructions.find(m_memory.byteAt(m_PC)) != m_illegalInstructions.end();
+    int spaces = 7 - ((length - 1) * 3) - illegalInstruction;
     output << std::string(spaces, ' ');
+    if (illegalInstruction) {
+        output << '*';
+    }
     output << m_queuedInstruction->mnemonic();
     std::string disassembly = m_queuedInstruction->disassembly();
     output << " " << disassembly;
