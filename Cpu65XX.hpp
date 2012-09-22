@@ -12,6 +12,7 @@
 #include <string>
 #include <functional>
 #include <map>
+#include <set>
 
 #define MAIN_MEM_SIZE (64 * 1024)
 
@@ -61,7 +62,11 @@ class Cpu65XX
                 
                 // mutators
                 u8_byte&  byteAt(const u16_word& address);
-                u16_word& wordAt(const u16_word& address);
+                u8_byte&  byteAtZeroPage(const u8_byte& address);
+
+                // accessors
+                u16_word  wordAt(const u16_word& address, bool indirect = false);
+                u16_word  wordAtZeroPage(const u8_byte& address);
 
             private:
                 u16_word trueAddress(const u16_word&) const;
@@ -111,6 +116,7 @@ class Cpu65XX
 
 
         bool                     crossesPageBoundary(const u16_word& address) const;
+        bool                     crossesPageBoundary(const u16_word& address, const u8_byte& offset) const;
         bool                     conditionalBranchCrossesPageBoundary(const u8_byte& offset) const;
 
         std::string state() const;
@@ -126,7 +132,7 @@ class Cpu65XX
         void    setStatusRegister(const StatusRegister&);
 
         u8_byte&  byteOperand();
-        u16_word& wordOperand();
+        u16_word  wordOperand();
 
         void    handleRegisterAssignmentFlags(const u8_byte&);
 
@@ -150,7 +156,7 @@ class Cpu65XX
         void pushStackByte(const u8_byte&);
         void pushStackWord(const u16_word&);
         u8_byte&   popStackByte();
-        u16_word&  popStackWord();
+        u16_word   popStackWord();
 
         Memory&     memory();
 
@@ -171,6 +177,7 @@ class Cpu65XX
         //Set of instructions used by the CPU
         Instruction*      m_instructions;
         std::map<const char*, std::function<std::string ()> > m_disassemblyFunctions;
+        std::set<u8_byte> m_illegalInstructions;
         // Cycles to wait until executing the current instruction.
         unsigned int      m_downCycles; 
         // The next instruction to run.
