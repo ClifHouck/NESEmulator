@@ -58,7 +58,8 @@ buildDisassemblyFunctions()
     m_disassemblyFunctions["Branch"] = [this] {
         std::stringstream output;
         output.fill('0');
-        output << std::hex << "$" << std::setw(4) << (int)(byteOperand() + 2 + PC());
+        u16_word destination = PC() + 2 + static_cast<signed char>(byteOperand());
+        output << std::hex << "$" << std::setw(4) << destination;
         return output.str();
     };
     m_disassemblyFunctions["Immediate"] = [this] {
@@ -858,8 +859,10 @@ buildInstructionSet()
     // 40        nzcidv  6   RTI         Return from BRK/IRQ/NMI    P=[S], PC=[S]
     cycleFunc   = [this] { return 6; }; 
     workFunc    = [this] { 
+        // Save break flag.
         bool breakFlag = m_status.breakFlag();
         setStatusRegister(StatusRegister(popStackByte()));
+        // Restore break flag.
         m_status.setBreakFlag(breakFlag);
         setPC(popStackWord());
     };
@@ -993,21 +996,21 @@ buildInstructionSet()
 
     // 87 nn     ------  3   SAX nn      STA+STX  [nn]=A AND X
     cycleFunc   = [this] { return 3; };
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand()), A() & X()); };
+    workFunc    = [this] { m_memory.byteAtZeroPage(byteOperand()) = A() & X(); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x87] = Instruction(0x87, 2, "SAX", disassemblyFunc, cycleFunc, workFunc);
     // 97 nn     ------  4   SAX nn,Y    STA+STX  [nn+Y]=A AND X
     cycleFunc   = [this] { return 4; };
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand() + Y()), A() & X()); };
+    workFunc    = [this] { m_memory.byteAtZeroPage(byteOperand() + Y()) = A() & X(); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,Y"];
     m_instructions[0x97] = Instruction(0x97, 2, "SAX", disassemblyFunc, cycleFunc, workFunc);
     // 8F nn nn  ------  4   SAX nnnn    STA+STX  [nnnn]=A AND X
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(wordOperand()), A() & X()); };
-    disassemblyFunc = m_disassemblyFunctions["Absolute"];
+    workFunc    = [this] { m_memory.byteAt(wordOperand()) = A() & X(); };
+    disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x8F] = Instruction(0x8F, 3, "SAX", disassemblyFunc, cycleFunc, workFunc);
     // 83 nn     ------  6   SAX (nn,X)  STA+STX  [WORD[nn+X]]=A AND X
     cycleFunc   = [this] { return 6; };
-    workFunc    = [this] { setByte(m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand() + X())), A() & X()); };
+    workFunc    = [this] { m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand() + X())) = A() & X(); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
     m_instructions[0x83] = Instruction(0x83, 2, "SAX", disassemblyFunc, cycleFunc, workFunc);
 
@@ -1035,16 +1038,18 @@ buildInstructionSet()
         setA(data);
         setX(data);
     };
-    disassemblyFunc = m_disassemblyFunctions["Absolute"];
+    disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xAF] = Instruction(0xAF, 3, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // BF nn nn  nz----  4*  LAX nnnn,X  LDA+LDX  A,X=[nnnn+X]
+    // FIXME: Is the instruction above wrong? In tests it appears that
+    // Y is being added instead.
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };
     workFunc    = [this] { 
-        const u8_byte& data = m_memory.byteAt(wordOperand() + X()); 
+        const u8_byte& data = m_memory.byteAt(wordOperand() + Y()); 
         setA(data);
         setX(data);
     };
-    disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
+    disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];
     m_instructions[0xBF] = Instruction(0xBF, 3, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // A3 nn     nz----  6   LAX (nn,X)  LDA+LDX  A,X=[WORD[nn+X]]
     cycleFunc   = [this] { return 6; };
@@ -1062,7 +1067,7 @@ buildInstructionSet()
         setA(data);
         setX(data);
     };
-    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
+    disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];
     m_instructions[0xB3] = Instruction(0xB3, 2, "LAX", disassemblyFunc, cycleFunc, workFunc);
 
     //TODO: Combined ALU-Opcodes!!!
@@ -1089,6 +1094,7 @@ buildInstructionSet()
 
     // Other Illegal Opcodes
 
+    // TODO: Implement these.
     // 0B nn     nzc---  2  ANC #nn          AND+ASL  A=A AND nn
     // 2B nn     nzc---  2  ANC #nn          AND+ROL  A=A AND nn
     // 4B nn     nzc---  2  ALR #nn          AND+LSR  A=(A AND nn)*2  MUL2???
@@ -1121,13 +1127,13 @@ buildInstructionSet()
     }
     // xx nn     ------  3   NOP nn     (xx=04,44,64)
     cycleFunc   = [this] { return 3; };
-    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     for (const u8_byte& opcode : {0x04, 0x44, 0x64}) {
         m_instructions[opcode] = Instruction(opcode, 2, "NOP", disassemblyFunc, cycleFunc, workFunc);
     }
     // xx nn     ------  4   NOP nn,X   (xx=14,34,54,74,D4,F4)
     cycleFunc   = [this] { return 4; };
-    disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     for (const u8_byte& opcode : {0x14, 0x34, 0x54, 0x74, 0xD4, 0xF4}) {
         m_instructions[opcode] = Instruction(opcode, 2, "NOP", disassemblyFunc, cycleFunc, workFunc);
     }
@@ -1322,7 +1328,8 @@ bool
 Cpu65XX::
 conditionalBranchCrossesPageBoundary(const u8_byte& offset) const
 {
-    return ((PC() + 2 + offset) & 0xFF00) != ((PC() + 2) & 0xFF00);
+    u16_word destination = PC() + 2 + static_cast<signed char>(offset);
+    return (destination & 0xFF00) != ((PC() + 2) & 0xFF00);
 }
 
 std::string
@@ -1617,6 +1624,22 @@ Memory(u8_byte * toLoad, unsigned int size)
     std::fill(m_memory, m_memory + (MAIN_MEM_SIZE), 0x00);
     std::copy(toLoad, toLoad + size, m_memory);
 }
+
+# if 0
+u8_byte
+Cpu65XX::Memory::
+immediate() 
+{
+    return byteOperand();
+}
+
+u8_byte
+Cpu65XX::Memory::
+zeroPage()
+{
+    return m_mem    
+}
+#endif
 
 //FIXME: Consider what to do when the address is out-of-bounds.
 // Throw an expection? 
