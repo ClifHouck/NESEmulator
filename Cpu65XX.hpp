@@ -163,6 +163,7 @@ class Cpu65XX
     private:
         void buildInstructionSet();
         void buildDisassemblyFunctions();
+        void buildCombinedALUOpcodes();
 
         // Registers
         u8_byte           m_A;  // Accumulator
