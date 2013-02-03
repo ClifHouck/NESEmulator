@@ -1074,21 +1074,118 @@ buildInstructionSet()
     
     // Other Illegal Opcodes
 
-    // TODO: Implement these.
     // 0B nn     nzc---  2  ANC #nn          AND+ASL  A=A AND nn
+    cycleFunc               = [this] { return 2; };
+    workFunc                = [this] { setA(A() & byteOperand()); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0x0B]    = Instruction(0x0B, 2, "ANC", disassemblyFunc, cycleFunc, workFunc);
+
     // 2B nn     nzc---  2  ANC #nn          AND+ROL  A=A AND nn
+    workFunc                = [this] { setA(A() & byteOperand()); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0x2B]    = Instruction(0x2B, 2, "ANC", disassemblyFunc, cycleFunc, workFunc);
+
     // 4B nn     nzc---  2  ALR #nn          AND+LSR  A=(A AND nn)*2  MUL2???
+    workFunc                = [this] { setA(shiftRight(A() & byteOperand())); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0x4B]    = Instruction(0x4B, 2, "ALR", disassemblyFunc, cycleFunc, workFunc);
+
     // 6B nn     nzc--v  2  ARR #nn          AND+ROR  A=(A AND nn)/2
+    workFunc                = [this] { setA(rotateRightThroughCarry(A() & byteOperand())); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0x6B]    = Instruction(0x6B, 2, "ARR", disassemblyFunc, cycleFunc, workFunc);
+
     // 8B nn     nz----  2  XAA #nn    ((2)) TXA+AND  A=X AND nn
+    // note to XAA: DO NOT USE!!! Highly unstable!!!
+    workFunc                = [this] { setA(X() & byteOperand()); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0x8B]    = Instruction(0x8B, 2, "XAA", disassemblyFunc, cycleFunc, workFunc);
+
     // AB nn     nz----  2  LAX #nn    ((2)) LDA+TAX  A,X=nn
-    // CB nn     nzc---  2  AXS #nn          CMP+DEX  X=A AND X -nn  cy?
+    // note to LAX: DO NOT USE!!! On my C128, this opcode is stable, but on my C64-II
+    // it loses bits so that the operation looks like this: ORA #? AND #{imm} TAX.
+    workFunc                = [this] { 
+        setX(A() & byteOperand()); 
+        setA(X());
+    };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0xAB]    = Instruction(0xAB, 2, "ANC", disassemblyFunc, cycleFunc, workFunc);
+
+    // CB nn     nzc---  2  AXS #nn          CMP+DEX  X=A AND X -nn
+    // note to AXS: performs CMP and DEX at the same time, so that the MINUS sets
+    // the flag like CMP, not SBC.
+    workFunc                = [this] { setX((A() & X()) - byteOperand()); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0xCB]    = Instruction(0xCB, 2, "AXS", disassemblyFunc, cycleFunc, workFunc);
+
     // EB nn     nzc--v  2  SBC #nn          SBC+NOP  A=A-nn         cy?
-    // 93 nn     ------  6  AHX (nn),Y ((1))          [WORD[nn]+Y] = A AND X AND H
-    // 9F nn nn  ------  5  AHX nnnn,Y ((1))          [nnnn+Y] = A AND X AND H
-    // 9C nn nn  ------  5  SHY nnnn,X ((1))          [nnnn+X] = Y AND H
-    // 9E nn nn  ------  5  SHX nnnn,Y ((1))          [nnnn+Y] = X AND H
-    // 9B nn nn  ------  5  TAS nnnn,Y ((1)) STA+TXS  S=A AND X  // [nnnn+Y]=S AND H
+    workFunc                = [this] { setA(subtractionWithBorrow(A(), byteOperand())); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0xEB]    = Instruction(0xEB, 2, "SBC", disassemblyFunc, cycleFunc, workFunc);
+
     // BB nn nn  nz----  4* LAS nnnn,Y       LDA+TSX  A,X,S = [nnnn+Y] AND S
+    cycleFunc               = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };
+    workFunc                = [this] { 
+        setA(m_memory.byteAt(wordOperand() + Y()) & S()); 
+        setX(A());
+        setS(A());
+    };
+    disassemblyFunc         = m_disassemblyFunctions["Absolute,Y"];
+    m_instructions[0xBB]    = Instruction(0xBB, 3, "LAS", disassemblyFunc, cycleFunc, workFunc);
+
+    // 93 nn     ------  6  AHX (nn),Y ((1))          [WORD[nn]+Y] = A AND X AND H
+    cycleFunc               = [this] { return 6; };
+    workFunc                = [this] { 
+        u16_word address = m_memory.wordAt(byteOperand()) + Y();
+        u8_byte h = (address & 0xFF00) >> 8;
+        setByte(m_memory.byteAt(address), A() & X() & h ); };
+    disassemblyFunc         = m_disassemblyFunctions["Immediate"];
+    m_instructions[0x93]    = Instruction(0x93, 2, "AHX", disassemblyFunc, cycleFunc, workFunc);
+
+    // note: sometimes the &H drops off. Also page boundary crossing will not work as
+    //       expected (the bank where the value is stored may be equal to the value stored).
+    //       ["H" probably meant to be the MSB aka Highbyte of the 16bit memory address?]
+
+    // 9F nn nn  ------  5  AHX nnnn,Y ((1))          [nnnn+Y] = A AND X AND H
+    // AHX {adr} = stores A&X&H into {adr}
+    cycleFunc               = [this] { return 5; };
+    workFunc                = [this] { 
+        u16_word address = wordOperand() + Y();
+        u8_byte h = (address & 0xFF00) >> 8;
+        setByte(m_memory.byteAt(address), A() & X() & h);  
+    };
+    disassemblyFunc         = m_disassemblyFunctions["Absolute,Y"];
+    m_instructions[0x9F]    = Instruction(0x9F, 3, "AHX", disassemblyFunc, cycleFunc, workFunc);
+
+    // 9C nn nn  ------  5  SHY nnnn,X ((1))          [nnnn+X] = Y AND H
+    // SHY {adr} = stores Y&H into {adr}
+    workFunc                = [this] { 
+        u16_word address = wordOperand() + X();
+        u8_byte h = (address & 0xFF00) >> 8;
+        setByte(m_memory.byteAt(address), Y() & h);  
+    };
+    disassemblyFunc         = m_disassemblyFunctions["Absolute,X"];
+    m_instructions[0x9C]    = Instruction(0x9C, 3, "SHY", disassemblyFunc, cycleFunc, workFunc);
+
+    // 9E nn nn  ------  5  SHX nnnn,Y ((1))          [nnnn+Y] = X AND H
+    // SHX {adr} = stores X&H into {adr}
+    workFunc                = [this] { 
+        u16_word address = wordOperand() + Y();
+        u8_byte h = (address & 0xFF00) >> 8;
+        setByte(m_memory.byteAt(address), X() & h);  
+    };
+    disassemblyFunc         = m_disassemblyFunctions["Absolute,Y"];
+    m_instructions[0x9E]    = Instruction(0x9E, 3, "SHX", disassemblyFunc, cycleFunc, workFunc);
+
+    // 9B nn nn  ------  5  TAS nnnn,Y ((1)) STA+TXS  S=A AND X  // [nnnn+Y]=S AND H
+    workFunc                = [this] { 
+        u16_word address = wordOperand() + Y();
+        u8_byte h = (address & 0xFF00) >> 8;
+        setS(A() & X()); 
+        setByte(m_memory.byteAt(address), S() & h);
+    };
+    disassemblyFunc         = m_disassemblyFunctions["Absolute,Y"];
+    m_instructions[0x9B]    = Instruction(0x9B, 3, "TAS", disassemblyFunc, cycleFunc, workFunc);
 
     // NUL/NOP and KIL/JAM/HLT
 
