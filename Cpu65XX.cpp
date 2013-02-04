@@ -1271,16 +1271,16 @@ buildCombinedALUOpcodes()
 
     std::function<void ()> workFunc;
 
-    const u8_byte lowbits[] = { 0x07, 0x17, 0x03, 0x13, 0x0F, 0x1F, 0x1B, 0x00 };
+    const u8_byte lowbitsArray[] = { 0x07, 0x17, 0x03, 0x13, 0x0F, 0x1F, 0x1B, 0x00 };
 
-    std::function<u8_byte()> operandFuncs[] = {
-        std::function<u8_byte()>([this] { return m_memory.byteAtZeroPage(byteOperand()); }),                   // [nn]
-        std::function<u8_byte()>([this] { return m_memory.byteAtZeroPage(byteOperand() + X()); }),            // [nn+X]
-        std::function<u8_byte()>([this] { return m_memory.byteAt(m_memory.wordAt(byteOperand() + X())); }),   // [WORD[nn+X]]
-        std::function<u8_byte()>([this] { return m_memory.byteAt(m_memory.wordAt(byteOperand()) + Y()); }),   // [WORD[nn]+Y]
-        std::function<u8_byte()>([this] { return m_memory.byteAt(wordOperand()); }),                          // [nnnn]
-        std::function<u8_byte()>([this] { return m_memory.byteAt(wordOperand() + X()); }),                    // [nnnn+X]
-        std::function<u8_byte()>([this] { return m_memory.byteAt(wordOperand() + Y()); })                     // [nnnn+Y]
+    std::function<u8_byte&()> operandFuncs[] = {
+        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAtZeroPage(byteOperand()); }),                  // [nn]
+        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAtZeroPage(byteOperand() + X()); }),            // [nn+X]
+        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(m_memory.wordAt(byteOperand() + X())); }),   // [WORD[nn+X]]
+        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(m_memory.wordAt(byteOperand()) + Y()); }),   // [WORD[nn]+Y]
+        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(wordOperand()); }),                          // [nnnn]
+        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(wordOperand() + X()); }),                    // [nnnn+X]
+        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(wordOperand() + Y()); })                     // [nnnn+Y]
     };
 
     unsigned int lengths[] = {
@@ -1308,61 +1308,73 @@ buildCombinedALUOpcodes()
         m_disassemblyFunctions["ZeroPage,X"],
         m_disassemblyFunctions["(Indirect,X)"],
         m_disassemblyFunctions["(Indirect),Y"],
-        m_disassemblyFunctions["Absolute"],
+        m_disassemblyFunctions["AbsoluteWithValue"],
         m_disassemblyFunctions["Absolute,X"],
         m_disassemblyFunctions["Absolute,Y"],
     };
 
     // Build each instruction using the high half of the byte to select the work.
-    for (const u8_byte highHalf : { 0x00, 0x20, 0x40, 0x60, 0xC0, 0xE0 }) {
+    for (const u8_byte highbits : { 0x00, 0x20, 0x40, 0x60, 0xC0, 0xE0 }) {
         // The low half selects how the operand is fetched.
-        for (int i = 0; lowbits[i] != 0x00; ++i) {
-            u8_byte lowHalf                         = lowbits[i];
-            std::function<u8_byte()> operandFunc    = operandFuncs[i];
+        for (int i = 0; lowbitsArray[i] != 0x00; ++i) {
+            u8_byte lowbits                         = lowbitsArray[i];
+            std::function<u8_byte&()> operandFunc   = operandFuncs[i];
             const char* mnemonic                    = NULL;
 
-            switch (highHalf) {
+            switch (highbits) {
                 // 00+yy        nzc---  SLO op   ASL+ORA   op=op SHL 1 // A=A OR op
                 case 0x00:
                     workFunc = [this, operandFunc] { 
-                        setA(A() | shiftLeft(operandFunc())); 
+                        u8_byte& operand = operandFunc();
+                        operand = shiftLeft(operand);
+                        setA(A() | operand); 
                     };
                     mnemonic = "SLO";
                     break;
                 // 20+yy        nzc---  RLA op   ROL+AND   op=op RCL 1 // A=A AND op
                 case 0x20:
                     workFunc = [this, operandFunc] { 
-                        setA(A() | rotateLeftThroughCarry(operandFunc())); 
+                        u8_byte& operand = operandFunc();
+                        operand = rotateLeftThroughCarry(operand);
+                        setA(A() & operand); 
                     };
                     mnemonic = "RLA";
                     break;
                 // 40+yy        nzc---  SRE op   LSR+EOR   op=op SHR 1 // A=A XOR op
                 case 0x40:
                     workFunc = [this, operandFunc] { 
-                        setA(A() ^ shiftRight(operandFunc())); 
+                        u8_byte& operand = operandFunc();
+                        operand = shiftRight(operand);
+                        setA(A() ^ operand); 
                     };
                     mnemonic = "SRE";
                     break;
                 // 60+yy        nzc--v  RRA op   ROR+ADC   op=op RCR 1 // A=A ADC op
                 case 0x60:
                     workFunc = [this, operandFunc] { 
-                        setA(A() ^ rotateRightThroughCarry(operandFunc())); 
+                        u8_byte& operand = operandFunc(); 
+                        operand = rotateRightThroughCarry(operand);
+                        setA(additionWithCarry(A(), operand));
                     };
                     mnemonic = "RRA";
                     break;
                 // C0+yy        nzc---  DCP op   DEC+CMP   op=op-1     // A-op
                 case 0xC0:
                     workFunc = [this, operandFunc] { 
-                        compare(A(), operandFunc() - 1); 
+                        u8_byte& operand = operandFunc(); 
+                        --operand;
+                        compare(A(), operand);
                     };
                     mnemonic = "DCP";
                     break;
                 // E0+yy        nzc--v  ISC op   INC+SBC   op=op+1     // A=A-op-(1-cy)
                 case 0xE0:
                     workFunc = [this, operandFunc] { 
-                        setA(subtractionWithBorrow(A(), operandFunc() + 1)); 
+                        u8_byte& operand = operandFunc();
+                        ++operand;
+                        setA(subtractionWithBorrow(A(), operand)); 
                     };
-                    mnemonic = "ISC";
+                    mnemonic = "ISB";
                     break;
                 default:
                     std::cout << "Got bad highbits when constructing Combined ALU opcodes!\n";
@@ -1370,7 +1382,7 @@ buildCombinedALUOpcodes()
             }
 
             // Builds the instruction.
-            u8_byte opcode = highHalf & lowHalf;
+            u8_byte opcode = highbits | lowbits;
             // Remember, this instruction is technically illegal!
             m_illegalInstructions.insert(opcode);
             m_instructions[opcode] = Instruction(opcode, lengths[i], mnemonic, disassemblyFuncs[i], cycleFuncs[i], workFunc);
@@ -1497,6 +1509,13 @@ Cpu65XX::
 statusRegister() const
 {
     return m_status;
+}
+
+unsigned int
+Cpu65XX::
+cycles() const
+{
+    return m_cycles;
 }
 
 u8_byte&           
@@ -1730,10 +1749,10 @@ rotateLeftThroughCarry(const u8_byte& op)
 //FIXME: Verify
 u8_byte 
 Cpu65XX::
-rotateRightThroughCarry(const u8_byte& op)
+rotateRightThroughCarry(const u8_byte& operand)
 {
-    u8_byte result = (op >> 1) + (m_status.carry() * 0x80);
-    m_status.setCarry(op & 0x01);
+    u8_byte result = (operand >> 1) + (m_status.carry() * 0x80);
+    m_status.setCarry(operand & 0x01);
     return result;
 }
 
@@ -1864,7 +1883,7 @@ trueAddress(const u16_word& address) const
         fixedAddress = address % 0x0800;
     }
     // 0x2000 - 0x2007 Are the PPU registers
-    // 0x2000 - 03FFFF Are the same PPU registers mapped over and over. Seems silly...
+    // 0x2000 - 0x3FFF Are the same PPU registers mapped over and over. Seems silly...
     else if (address >= 0x2008 && 
              address <  0x4000) {
         fixedAddress = 0x2000 + (address % 0x0008);

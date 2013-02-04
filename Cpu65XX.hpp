@@ -113,6 +113,7 @@ class Cpu65XX
         const u8_byte&           S()  const;
         u16_word                 stackPointer() const;
         const StatusRegister&    statusRegister() const;
+        unsigned int             cycles() const;
 
 
         bool                     crossesPageBoundary(const u16_word& address) const;
