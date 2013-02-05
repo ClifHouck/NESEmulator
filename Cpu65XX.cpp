@@ -1041,8 +1041,6 @@ buildInstructionSet()
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xAF] = Instruction(0xAF, 3, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // BF nn nn  nz----  4*  LAX nnnn,X  LDA+LDX  A,X=[nnnn+X]
-    // FIXME: Is the instruction above wrong? In tests it appears that
-    // Y is being added instead.
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };
     workFunc    = [this] { 
         const u8_byte& data = m_memory.byteAt(wordOperand() + Y()); 
@@ -1682,7 +1680,6 @@ handleRegisterAssignmentFlags(const u8_byte& value)
     m_status.setNegative((value & 0x80) > 0);
 }
 
-//FIXME: Verify
 u8_byte 
 Cpu65XX::
 additionWithCarry(const u8_byte& op1, const u8_byte& op2)
@@ -1694,7 +1691,6 @@ additionWithCarry(const u8_byte& op1, const u8_byte& op2)
     return static_cast<u8_byte>(result);
 }
 
-//FIXME: Verify
 u8_byte 
 Cpu65XX::
 subtractionWithBorrow(const u8_byte& op1, const u8_byte& op2)
@@ -1705,7 +1701,6 @@ subtractionWithBorrow(const u8_byte& op1, const u8_byte& op2)
     return static_cast<u8_byte>(result);
 }
 
-//FIXME: Verify
 void          
 Cpu65XX::
 compare(const u8_byte& accumulator, const u8_byte& memory)
@@ -1716,7 +1711,6 @@ compare(const u8_byte& accumulator, const u8_byte& memory)
     m_status.setNegative(result & 0x80);
 }
 
-//FIXME: Verify
 u8_byte 
 Cpu65XX::
 shiftLeft(const u8_byte& op)
@@ -1726,7 +1720,6 @@ shiftLeft(const u8_byte& op)
     return result;
 }
 
-//FIXME: Verify
 u8_byte 
 Cpu65XX::
 shiftRight(const u8_byte& op)
@@ -1736,7 +1729,6 @@ shiftRight(const u8_byte& op)
     return result;
 }
 
-//FIXME: Verify
 u8_byte 
 Cpu65XX::
 rotateLeftThroughCarry(const u8_byte& op)
@@ -1746,7 +1738,6 @@ rotateLeftThroughCarry(const u8_byte& op)
     return result;
 }
 
-//FIXME: Verify
 u8_byte 
 Cpu65XX::
 rotateRightThroughCarry(const u8_byte& operand)
@@ -1793,7 +1784,6 @@ void
 Cpu65XX::
 pushStackByte(const u8_byte& value) 
 {
-    // std::cout << "Pushing " << std::hex << std::setw(2) << (int)value << std::endl;
     m_memory.byteAt(stackPointer()) = value;
     setS(S() - 1);
 }
@@ -1802,7 +1792,6 @@ void
 Cpu65XX::
 pushStackWord(const u16_word& value)
 {
-    // std::cout << "Pushing " << std::hex << std::setw(4) << value << std::endl;
     m_memory.byteAt(stackPointer()) = (u8_byte)((value & 0xFF00) >> 8);
     m_memory.byteAt(stackPointer() - 1)     = (u8_byte)value;
     setS(S() - 2);
@@ -1813,7 +1802,6 @@ Cpu65XX::
 popStackByte()
 {
     setS(S() + 1);
-    // std::cout << "Popping " << std::hex << std::setw(2) << (int)m_memory.byteAt(stackPointer()) << std::endl;
     return m_memory.byteAt(stackPointer());
 }
 
@@ -1822,7 +1810,6 @@ Cpu65XX::
 popStackWord()
 {
     setS(S() + 2);
-    // std::cout << "Popping " << std::hex << std::setw(4) << (int)m_memory.wordAt(stackPointer()) << std::endl;
     u16_word value = (((u16_word)m_memory.byteAt(stackPointer())) << 8) + m_memory.byteAt(stackPointer() - 1);
     return value;
 }
@@ -1847,22 +1834,6 @@ Memory(u8_byte * toLoad, unsigned int size)
     std::fill(m_memory, m_memory + (MAIN_MEM_SIZE), 0x00);
     std::copy(toLoad, toLoad + size, m_memory);
 }
-
-# if 0
-u8_byte
-Cpu65XX::Memory::
-immediate() 
-{
-    return byteOperand();
-}
-
-u8_byte
-Cpu65XX::Memory::
-zeroPage()
-{
-    return m_mem    
-}
-#endif
 
 //FIXME: Consider what to do when the address is out-of-bounds.
 // Throw an expection? 
@@ -1918,10 +1889,7 @@ wordAt(const u16_word& address, bool indirect)
     if ((address < 0x0100 || indirect) && (address & 0x00FF) == 0xFF) {
         return byteAt(address & 0xFF00) * 0x0100 + byteAt(address);
     }
-    //FIXME: Just how hacky and bad is this? Lets find out...
     return *(static_cast<u16_word*>(static_cast<void*>(m_memory + tAddress)));
-    //u16_word tempAddr = trueAddress(address);
-    //return (m_memory[tempAddr - 1] * 0x100) + m_memory[tempAddr];
 }
 
 u16_word
