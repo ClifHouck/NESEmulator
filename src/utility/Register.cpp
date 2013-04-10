@@ -15,7 +15,8 @@ read() const
     return m_data;
 }
 
-    void    
+void    
+Register::
 write(u8_byte data, u8_byte mask)
 {
     m_data = m_data & mask;

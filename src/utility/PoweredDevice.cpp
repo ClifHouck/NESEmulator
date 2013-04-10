@@ -1,7 +1,7 @@
-#include "PoweredDevice::.hpp"
+#include "PoweredDevice.hpp"
 
 PoweredDevice::
-PoweredDevice(State state = ON) :
+PoweredDevice(State state) :
     m_state (state)
 {
 }
