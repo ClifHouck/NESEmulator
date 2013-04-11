@@ -19,10 +19,11 @@ public:
     u8_byte rawRead() const;
     void    rawWrite(u8_byte data, u8_byte mask);
 
-    // PoweredDevice interface
-    virtual void reset();
-    virtual void powerOn();
-    virtual void powerOff();
+protected:
+    // Interface required by PoweredDevice interface.
+    void resetImpl();
+    void powerOnImpl();
+    void powerOffImpl();
 
 private:
     u8_byte m_data;

@@ -1,35 +1,44 @@
 #include "PoweredDevice.hpp"
 
+#include <cassert>
+
 PoweredDevice::
-PoweredDevice(State state) :
-    m_state (state)
+PoweredDevice(PoweredDevice *owner, State state) :
+    m_poweredDeviceOwner (owner),
+    m_powerState (state)
 {
+    assert(owner != nullptr);
 }
 
 void 
 PoweredDevice::
 reset() 
 {
+    m_poweredDeviceOwner->resetImpl();
 }
 
 void 
 PoweredDevice::
 powerOn()
 {
-    m_state = ON;
+    m_powerState = ON;
+    m_poweredDeviceOwner->powerOnImpl();
 }
 
 void 
 PoweredDevice::
 powerOff()
 {
-    m_state = OFF;
+    m_powerState = OFF;
+    m_poweredDeviceOwner->powerOffImpl();
 }
 
 PoweredDevice::State
 PoweredDevice::
 state() const
 {
-    return m_state;
+    return m_powerState;
 }
+
+
 

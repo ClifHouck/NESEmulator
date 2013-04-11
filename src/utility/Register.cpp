@@ -3,6 +3,7 @@
 Register::
 Register(u8_byte initialData,
         u8_byte resetData) :
+    PoweredDevice(this),
     m_data (initialData),
     m_resetData (resetData)
 {
@@ -38,23 +39,20 @@ rawWrite(u8_byte data, u8_byte mask)
     
 void 
 Register::
-reset()
+resetImpl()
 {
-    PoweredDevice::reset();
     m_data = m_resetData;
 }
 
 void
 Register::
-powerOn() 
+powerOnImpl() 
 {
-    PoweredDevice::powerOn();
     m_data = m_resetData;
 }
 
 void
 Register::
-powerOff()
+powerOffImpl()
 {
-    PoweredDevice::powerOff();
 }
