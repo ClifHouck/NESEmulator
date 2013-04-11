@@ -1,5 +1,5 @@
 #ifndef REGISTER_H
-#define REGISTER_
+#define REGISTER_H
 
 #include "DataTypes.hpp"
 
