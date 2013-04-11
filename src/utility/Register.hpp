@@ -20,7 +20,7 @@ public:
     void    rawWrite(u8_byte data, u8_byte mask);
 
 protected:
-    // Interface required by PoweredDevice interface.
+    // Interface required by PoweredDevice.
     void resetImpl();
     void powerOnImpl();
     void powerOffImpl();
