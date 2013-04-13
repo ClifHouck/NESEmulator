@@ -6,12 +6,29 @@ Register(u8_byte powerOnData,
         u8_byte readOnlyMask,   
         u8_byte resetMask) :
     PoweredDevice(this),
-    m_data (powerOnData),
+    m_data (m_localBacking),
+    m_resetData (resetData),
+    m_readOnlyMask (readOnlyMask),
+    m_resetMask (resetMask),
+    m_powerOnData (powerOnData),
+    m_localBacking (powerOnData)
+{
+}
+
+Register::
+Register(u8_byte *backing,
+        u8_byte powerOnData,
+        u8_byte resetData,
+        u8_byte readOnlyMask,   
+        u8_byte resetMask) :
+    PoweredDevice(this),
+    m_data (*backing),
     m_resetData (resetData),
     m_readOnlyMask (readOnlyMask),
     m_resetMask (resetMask),
     m_powerOnData (powerOnData)
 {
+    m_data = powerOnData;
 }
 
 u8_byte 
