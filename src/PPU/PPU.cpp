@@ -1,7 +1,10 @@
 #include "PPU.hpp"
 
+#include <algorithm>
+
 PPU::
 PPU(Cpu65XX::Memory& cpuMemory) :
+    PoweredDevice(this),
     m_NMI           (false),
     m_clock         (0),
     m_control       (cpuMemory.byteAt(0x2000)),
@@ -18,6 +21,19 @@ PPU(Cpu65XX::Memory& cpuMemory) :
 {
     std::fill(m_bitmap, m_bitmap + (width*height*3), 0.0);
     std::fill(m_spriteRAM, m_spriteRAM + spriteRamSize, 0x00);
+
+    for (Register* reg : 
+            { &m_control, 
+              &m_mask,
+              &m_status,
+              &m_oamAddress,
+              &m_oamData,
+              &m_oamDMA,
+              &m_scroll,
+              &m_address,
+              &m_data }) {
+        m_registers.push_back(reg);
+    }
 }
 
 void
@@ -70,10 +86,11 @@ void
 PPU::
 render()
 {
-    if (m_mask & 0x10) {
+    // TODO: Push masks behind defined constants
+    if (m_mask.rawRead() & 0x10) {
         renderBackground();
     }
-    if (m_mask & 0x20) {
+    if (m_mask.rawRead() & 0x20) {
         renderSprites();
     }
 }
@@ -95,4 +112,34 @@ PPU::
 displayBuffer() const
 {
     return m_bitmap;
+}
+
+void 
+PPU::
+resetImpl()
+{
+    // TODO: Handle memory.
+    std::for_each(m_registers.begin(), m_registers.end(), [] (Register* reg) {
+            reg->reset();
+    });
+}
+
+void 
+PPU::
+powerOnImpl()
+{
+    // TODO: Handle memory.
+    std::for_each(m_registers.begin(), m_registers.end(), [] (Register* reg) {
+            reg->powerOn();
+    });
+}
+
+void 
+PPU::
+powerOffImpl()
+{
+    // TODO: Handle memory.
+    std::for_each(m_registers.begin(), m_registers.end(), [] (Register* reg) {
+            reg->powerOff();
+    });
 }
