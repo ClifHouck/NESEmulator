@@ -7,15 +7,19 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     PoweredDevice(this),
     m_NMI           (false),
     m_clock         (0),
-    m_control       (cpuMemory.byteAt(0x2000)),
-    m_mask          (cpuMemory.byteAt(0x2001)),
-    m_status        (cpuMemory.byteAt(0x2002)),
-    m_oamAddress    (cpuMemory.byteAt(0x2003)),
-    m_oamData       (cpuMemory.byteAt(0x2004)),
-    m_oamDMA        (cpuMemory.byteAt(0x4014)),
-    m_scroll        (cpuMemory.byteAt(0x2005)),
-    m_address       (cpuMemory.byteAt(0x2006)),
-    m_data          (cpuMemory.byteAt(0x2007)),
+    // Register information derived from: 
+    // http://wiki.nesdev.com/w/index.php/PPU_power_up_state
+    //              Backing                     On    Reset     RO Mask     Reset Mask 
+    m_control       (&cpuMemory.byteAt(0x2000),  0x00, 0x00,       0x00,           0x00),
+    m_mask          (&cpuMemory.byteAt(0x2001),  0x00, 0x00,       0x00,           0x00),
+    m_status        (&cpuMemory.byteAt(0x2002),  0xA0, 0x00,       0x00,           0x80),
+    m_oamAddress    (&cpuMemory.byteAt(0x2003),  0x00, 0x00,       0x00,           0xFF),
+    // TODO: Add write-only behavior here.
+    m_oamData       (&cpuMemory.byteAt(0x2004),  0x00, 0x00,       0x00,           0x00),
+    m_oamDMA        (&cpuMemory.byteAt(0x4014),  0x00, 0x00,       0x00,           0x00),
+    m_scroll        (&cpuMemory.byteAt(0x2005),  0x00, 0x00,       0x00,           0x00),
+    m_address       (&cpuMemory.byteAt(0x2006),  0x00, 0x00,       0x00,           0xFF),
+    m_data          (&cpuMemory.byteAt(0x2007),  0x00, 0x00,       0x00,           0x00),
     m_bitmap        (),
     m_spriteRAM     ()
 {
