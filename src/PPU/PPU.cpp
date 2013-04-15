@@ -11,7 +11,7 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     // http://wiki.nesdev.com/w/index.php/PPU_power_up_state
     //              Backing                     On    Reset     RO Mask     Reset Mask 
     m_control       (&cpuMemory.byteAt(0x2000),  0x00, 0x00,       0x00,           0x00),
-    m_mask          (&cpuMemory.byteAt(0x2001),  0x00, 0x00,       0x00,           0x00),
+    m_mask          (&cpuMemory.byteAt(0x2001)), 
     m_status        (&cpuMemory.byteAt(0x2002),  0xA0, 0x00,       0x00,           0x80),
     m_oamAddress    (&cpuMemory.byteAt(0x2003),  0x00, 0x00,       0x00,           0xFF),
     // TODO: Add write-only behavior here.
@@ -23,12 +23,12 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     m_bitmap        (),
     m_spriteRAM     ()
 {
-    std::fill(m_bitmap, m_bitmap + (width*height*3), 0.0);
+    std::fill(m_bitmap, m_bitmap + bitmapSize, 0.0);
     std::fill(m_spriteRAM, m_spriteRAM + spriteRamSize, 0x00);
 
     for (Register* reg : 
             { &m_control, 
-              &m_mask,
+              (Register*)&m_mask,
               &m_status,
               &m_oamAddress,
               &m_oamData,
@@ -103,12 +103,14 @@ void
 PPU::
 renderBackground()
 {
+    //TODO 
 }
 
 void 
 PPU::
 renderSprites()
 {
+    //TODO
 }
 
 const float* 
