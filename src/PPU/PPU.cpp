@@ -10,7 +10,7 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     // Register information derived from: 
     // http://wiki.nesdev.com/w/index.php/PPU_power_up_state
     //              Backing                     On    Reset     RO Mask     Reset Mask 
-    m_control       (&cpuMemory.byteAt(0x2000),  0x00, 0x00,       0x00,           0x00),
+    m_control       (&cpuMemory.byteAt(0x2000)),
     m_mask          (&cpuMemory.byteAt(0x2001)), 
     m_status        (&cpuMemory.byteAt(0x2002),  0xA0, 0x00,       0x00,           0x80),
     m_oamAddress    (&cpuMemory.byteAt(0x2003),  0x00, 0x00,       0x00,           0xFF),
@@ -27,7 +27,7 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     std::fill(m_spriteRAM, m_spriteRAM + spriteRamSize, 0x00);
 
     for (Register* reg : 
-            { &m_control, 
+            { (Register*)&m_control, 
               (Register*)&m_mask,
               &m_status,
               &m_oamAddress,

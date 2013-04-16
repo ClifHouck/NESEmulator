@@ -52,6 +52,38 @@ private:
 
     unsigned int m_clock;
 
+    class PPUController : public Register
+    {
+    public:
+        PPUController(u8_byte *backing) :
+            Register(backing, 0x00, 0x00, 0x00, 0x00)
+        {}
+
+        static const u8_byte BASE_NAMETABLE_ADDRESS_MASK            = 0x03;
+        static const u8_byte VRAM_ADDRESS_INCREMENT_MASK            = 0x04;
+        static const u8_byte SPRITE_PATTERN_TABLE_ADDRESS_MASK      = 0x08;
+        static const u8_byte BACKGROUND_PATTERN_TABLE__ADDRESS_MASK = 0x10;
+        static const u8_byte SPRITE_SIZE_MASK                       = 0x20;
+        static const u8_byte MASTER_SLAVE_SELECT_MASK               = 0x40;
+        static const u8_byte GENERATE_NMI_MASK                      = 0x80;
+
+        u16_word baseNameTableAddress() const {
+            return 0x2000 + ((rawRead() & BASE_NAMETABLE_ADDRESS_MASK) != 0) * 0x400;
+        }
+        bool vramAddressIncrement() const { return rawRead() & VRAM_ADDRESS_INCREMENT_MASK; }
+        u16_word spritePatternTableAddress() const { 
+            return ((rawRead() & SPRITE_PATTERN_TABLE_ADDRESS_MASK) != 0) * 0x1000; 
+        }
+        u16_word backgroundPatternTableAddress() const {
+            return ((rawRead() & BACKGROUND_PATTERN_TABLE__ADDRESS_MASK) != 0) * 0x1000;
+        }
+        std::pair<u8_byte, u8_byte> spriteSize() const {
+            return std::pair<u8_byte, u8_byte>(8, 8 + (8 * (rawRead() & SPRITE_SIZE_MASK)));
+        }
+        bool masterSlaveSelect() const { return rawRead() & MASTER_SLAVE_SELECT_MASK; }
+        bool generateNMI() const { return rawRead() & GENERATE_NMI_MASK; }
+    };
+
     class PPUMask : public Register 
     {
     public:
@@ -78,10 +110,11 @@ private:
         bool intensifyBlues() const { return rawRead() & INTENSIFY_BLUES_MASK; }
     };
 
+
     // PPU Control and Status Registers
-    Register m_control;
-    PPUMask  m_mask;
-    Register m_status;
+    PPUController   m_control; 
+    PPUMask         m_mask;
+    Register        m_status;
 
     // PPU Object Attribute Memory registers
     Register m_oamAddress;
