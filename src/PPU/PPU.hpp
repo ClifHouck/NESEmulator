@@ -110,11 +110,28 @@ private:
         bool intensifyBlues() const { return rawRead() & INTENSIFY_BLUES_MASK; }
     };
 
+    class PPUStatus : public Register {
+    public:
+        PPUStatus(u8_byte *backing) :
+            Register(backing, 0xA0, 0x00, 0x00, 0x80)
+        {}
+
+        static const u8_byte LEAST_SIGNIFICANT_BITS_MASK    = 0x1F;
+        static const u8_byte SPRITE_OVERFLOW_MASK           = 0x20;
+        static const u8_byte SPRITE_0_HIT_MASK              = 0x40;
+        static const u8_byte VERTICAL_BLANK_STARTED_MASK    = 0x80;
+
+        // TODO: Implement custom read() function.
+
+        bool spriteOverflow() { return rawRead() & SPRITE_OVERFLOW_MASK; }
+        bool sprite0Hit() { return rawRead() & SPRITE_0_HIT_MASK; }
+        bool verticalBlank() { return rawRead() & VERTICAL_BLANK_STARTED_MASK; }
+    };
 
     // PPU Control and Status Registers
     PPUController   m_control; 
     PPUMask         m_mask;
-    Register        m_status;
+    PPUStatus       m_status;
 
     // PPU Object Attribute Memory registers
     Register m_oamAddress;

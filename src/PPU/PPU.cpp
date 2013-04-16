@@ -9,10 +9,10 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     m_clock         (0),
     // Register information derived from: 
     // http://wiki.nesdev.com/w/index.php/PPU_power_up_state
-    //              Backing                     On    Reset     RO Mask     Reset Mask 
+    //              
     m_control       (&cpuMemory.byteAt(0x2000)),
     m_mask          (&cpuMemory.byteAt(0x2001)), 
-    m_status        (&cpuMemory.byteAt(0x2002),  0xA0, 0x00,       0x00,           0x80),
+    m_status        (&cpuMemory.byteAt(0x2002)),
     m_oamAddress    (&cpuMemory.byteAt(0x2003),  0x00, 0x00,       0x00,           0xFF),
     // TODO: Add write-only behavior here.
     m_oamData       (&cpuMemory.byteAt(0x2004),  0x00, 0x00,       0x00,           0x00),
@@ -29,7 +29,7 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     for (Register* reg : 
             { (Register*)&m_control, 
               (Register*)&m_mask,
-              &m_status,
+              (Register*)&m_status,
               &m_oamAddress,
               &m_oamData,
               &m_oamDMA,
@@ -66,6 +66,9 @@ Memory(u8_byte * toLoad, unsigned int size)
     std::copy(toLoad, toLoad + size, m_memory);
 }
 
+// FIXME: This function, or whatever replaces it must route 
+// reads and writes through register classes. This will likely
+// require a change in interface.
 u8_byte& 
 PPU::Memory::
 byteAt(const u16_word& address)
