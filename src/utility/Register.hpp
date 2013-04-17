@@ -21,14 +21,15 @@ public:
              u8_byte resetMask      = 0x00);
 
     // Functions for checked reads and writes.
-    u8_byte read() const;
-    void    write(u8_byte data, u8_byte mask = 0xFF);
+    virtual u8_byte read();
+    virtual void    write(u8_byte data, u8_byte mask = 0xFF);
 
+protected:
     // Ignores rules like read-only masks and returns the raw data found in the backing store.
+    // Use with caution.
     u8_byte rawRead() const;
     void    rawWrite(u8_byte data, u8_byte mask = 0xFF);
 
-protected:
     // Interface required by PoweredDevice.
     void resetImpl();
     void powerOnImpl();

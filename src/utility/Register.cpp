@@ -33,9 +33,9 @@ Register(u8_byte *backing,
 
 u8_byte 
 Register::
-read() const
+read() 
 {
-    return m_data;
+    return rawRead();
 }
 
 void    
@@ -47,7 +47,7 @@ write(u8_byte data, u8_byte mask)
     // TODO: Generate a warning when a caller tries to modify read-only
     // bits. That is, trying to write a 1 to a 0 or a 0 to a 1.
     mask &= ~m_readOnlyMask;
-    m_data = (data & mask) | (m_data & ~mask);
+    rawWrite((data & mask) | (m_data & ~mask));
 }
 
 u8_byte 

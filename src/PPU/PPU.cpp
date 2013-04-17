@@ -40,6 +40,11 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     }
 }
 
+PPU::
+~PPU()
+{
+}
+
 void
 PPU::
 tick()
@@ -93,11 +98,10 @@ void
 PPU::
 render()
 {
-    // TODO: Push masks behind defined constants
-    if (m_mask.rawRead() & 0x10) {
+    if (m_mask.showBackground()) {
         renderBackground();
     }
-    if (m_mask.rawRead() & 0x20) {
+    if (m_mask.showSprites()) {
         renderSprites();
     }
 }

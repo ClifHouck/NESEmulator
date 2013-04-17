@@ -12,6 +12,7 @@ class PPU : public PoweredDevice
 {
 public:
     PPU(Cpu65XX::Memory& cpuMemory);
+    ~PPU();
 
     const static unsigned int width             = 256;
     const static unsigned int height            = 240;
@@ -58,6 +59,7 @@ private:
         PPUController(u8_byte *backing) :
             Register(backing, 0x00, 0x00, 0x00, 0x00)
         {}
+        ~PPUController() {}
 
         static const u8_byte BASE_NAMETABLE_ADDRESS_MASK            = 0x03;
         static const u8_byte VRAM_ADDRESS_INCREMENT_MASK            = 0x04;
@@ -90,6 +92,7 @@ private:
         PPUMask(u8_byte *backing) :
             Register(backing, 0x00, 0x00, 0x00, 0x00)
         {}
+        ~PPUMask() {}
 
         static const u8_byte GRAYSCALE_MASK                     = 0x01;
         static const u8_byte SHOW_LEFTMOST_BACKGROUND_MASK      = 0x02;
@@ -115,6 +118,7 @@ private:
         PPUStatus(u8_byte *backing) :
             Register(backing, 0xA0, 0x00, 0x00, 0x80)
         {}
+        ~PPUStatus() {}
 
         static const u8_byte LEAST_SIGNIFICANT_BITS_MASK    = 0x1F;
         static const u8_byte SPRITE_OVERFLOW_MASK           = 0x20;
@@ -122,6 +126,9 @@ private:
         static const u8_byte VERTICAL_BLANK_STARTED_MASK    = 0x80;
 
         // TODO: Implement custom read() function.
+        virtual u8_byte read() {
+            return Register::read();
+        }
 
         bool spriteOverflow() { return rawRead() & SPRITE_OVERFLOW_MASK; }
         bool sprite0Hit() { return rawRead() & SPRITE_0_HIT_MASK; }
