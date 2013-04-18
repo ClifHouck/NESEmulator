@@ -125,8 +125,9 @@ private:
         static const u8_byte SPRITE_0_HIT_MASK              = 0x40;
         static const u8_byte VERTICAL_BLANK_STARTED_MASK    = 0x80;
 
-        // TODO: Implement custom read() function.
         virtual u8_byte read() {
+            rawWrite(rawRead() & ~VERTICAL_BLANK_STARTED_MASK);
+            // TODO: Clear 'address latch'
             return Register::read();
         }
 
@@ -135,15 +136,25 @@ private:
         bool verticalBlank() { return rawRead() & VERTICAL_BLANK_STARTED_MASK; }
     };
 
+    class OAMAddress : public Register
+    {
+    public:
+        OAMAddress(u8_byte *backing) :
+            Register(backing, 0x00, 0x00, 0x00, 0xFF)
+        {}
+
+        ~OAMAddress() {}
+    };
+
     // PPU Control and Status Registers
     PPUController   m_control; 
     PPUMask         m_mask;
     PPUStatus       m_status;
 
     // PPU Object Attribute Memory registers
-    Register m_oamAddress;
-    Register m_oamData;
-    Register m_oamDMA;
+    OAMAddress  m_oamAddress;
+    Register    m_oamData;
+    Register    m_oamDMA;
 
     // PPU VRAM Access Registers
     Register m_scroll;

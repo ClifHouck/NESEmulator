@@ -13,7 +13,7 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     m_control       (&cpuMemory.byteAt(0x2000)),
     m_mask          (&cpuMemory.byteAt(0x2001)), 
     m_status        (&cpuMemory.byteAt(0x2002)),
-    m_oamAddress    (&cpuMemory.byteAt(0x2003),  0x00, 0x00,       0x00,           0xFF),
+    m_oamAddress    (&cpuMemory.byteAt(0x2003)),
     // TODO: Add write-only behavior here.
     m_oamData       (&cpuMemory.byteAt(0x2004),  0x00, 0x00,       0x00,           0x00),
     m_oamDMA        (&cpuMemory.byteAt(0x4014),  0x00, 0x00,       0x00,           0x00),
@@ -30,7 +30,7 @@ PPU(Cpu65XX::Memory& cpuMemory) :
             { (Register*)&m_control, 
               (Register*)&m_mask,
               (Register*)&m_status,
-              &m_oamAddress,
+              (Register*)&m_oamAddress,
               &m_oamData,
               &m_oamDMA,
               &m_scroll,
