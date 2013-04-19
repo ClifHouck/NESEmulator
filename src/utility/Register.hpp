@@ -44,4 +44,30 @@ private:
     u8_byte m_localBacking;
 };
 
+class ReadOnlyRegister : public Register
+{
+public:
+    ReadOnlyRegister(u8_byte *backing,
+                     u8_byte powerOnData  = 0x00,
+                     u8_byte resetData    = 0x00,
+                     u8_byte readOnlyMask = 0xFF, 
+                     u8_byte resetMjsk    = 0x00);
+
+protected:
+    virtual void write(u8_byte data, u8_byte mask = 0xFF);
+};
+
+class WriteOnlyRegister : public Register
+{
+public:
+    WriteOnlyRegister(u8_byte *backing,
+                      u8_byte powerOnData  = 0x00,
+                      u8_byte resetData    = 0x00,
+                      u8_byte readOnlyMask = 0x00, 
+                      u8_byte resetMask    = 0x00);
+
+protected:
+    virtual u8_byte read();
+};
+
 #endif //REGISTER_H

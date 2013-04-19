@@ -85,3 +85,38 @@ Register::
 powerOffImpl()
 {
 }
+
+ReadOnlyRegister::
+ReadOnlyRegister(u8_byte *backing,
+                 u8_byte powerOnData,  
+                 u8_byte resetData,   
+                 u8_byte readOnlyMask,
+                 u8_byte resetMask) :
+    Register(backing, powerOnData, resetData, readOnlyMask, resetMask)
+{
+}
+
+void 
+ReadOnlyRegister::
+write(u8_byte data, u8_byte mask)
+{
+    // TODO print a warning message to a log that an attempt to write to
+    // a read-only register occurred. 
+}
+
+WriteOnlyRegister::
+WriteOnlyRegister(u8_byte *backing,
+                  u8_byte powerOnData,
+                  u8_byte resetData,
+                  u8_byte readOnlyMask,
+                  u8_byte resetMask) :
+    Register(backing, powerOnData, resetData, readOnlyMask, resetMask)
+{}
+
+u8_byte 
+WriteOnlyRegister::
+read()
+{
+    // TODO log a warning message that an attempt was made to read a 
+    // write only register
+}
