@@ -53,11 +53,11 @@ private:
 
     unsigned int m_clock;
 
-    class PPUController : public Register
+    class PPUController : public ReadOnlyRegister
     {
     public:
         PPUController(u8_byte *backing) :
-            Register(backing, 0x00, 0x00, 0x00, 0x00)
+            ReadOnlyRegister(backing, 0x00, 0x00, 0x00, 0x00)
         {}
         ~PPUController() {}
 
@@ -136,14 +136,22 @@ private:
         bool verticalBlank() { return rawRead() & VERTICAL_BLANK_STARTED_MASK; }
     };
 
-    class OAMAddress : public Register
+    class OAMAddress : public WriteOnlyRegister
     {
     public:
         OAMAddress(u8_byte *backing) :
-            Register(backing, 0x00, 0x00, 0x00, 0xFF)
+            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF)
         {}
-
         ~OAMAddress() {}
+    };
+
+    class OAMData : public Register
+    {
+    public:
+        OAMData(u8_byte *backing) :
+            Register(backing, 0x00, 0x00, 0x00, 0x00)
+        {}
+        ~OAMData() {}
     };
 
     // PPU Control and Status Registers
@@ -152,14 +160,13 @@ private:
     PPUStatus       m_status;
 
     // PPU Object Attribute Memory registers
-    OAMAddress  m_oamAddress;
-    Register    m_oamData;
-    Register    m_oamDMA;
+    OAMAddress      m_oamAddress;
+    OAMData         m_oamData;
 
     // PPU VRAM Access Registers
-    Register m_scroll;
-    Register m_address;
-    Register m_data;
+    Register        m_scroll;
+    Register        m_address;
+    Register        m_data;
 
     std::vector<Register*> m_registers;
 

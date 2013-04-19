@@ -15,11 +15,10 @@ PPU(Cpu65XX::Memory& cpuMemory) :
     m_status        (&cpuMemory.byteAt(0x2002)),
     m_oamAddress    (&cpuMemory.byteAt(0x2003)),
     // TODO: Add write-only behavior here.
-    m_oamData       (&cpuMemory.byteAt(0x2004),  0x00, 0x00,       0x00,           0x00),
-    m_oamDMA        (&cpuMemory.byteAt(0x4014),  0x00, 0x00,       0x00,           0x00),
-    m_scroll        (&cpuMemory.byteAt(0x2005),  0x00, 0x00,       0x00,           0x00),
-    m_address       (&cpuMemory.byteAt(0x2006),  0x00, 0x00,       0x00,           0xFF),
-    m_data          (&cpuMemory.byteAt(0x2007),  0x00, 0x00,       0x00,           0x00),
+    m_oamData       (&cpuMemory.byteAt(0x2004)),
+    m_scroll        (&cpuMemory.byteAt(0x2005),  0x00, 0x00, 0x00, 0x00),
+    m_address       (&cpuMemory.byteAt(0x2006),  0x00, 0x00, 0x00, 0xFF),
+    m_data          (&cpuMemory.byteAt(0x2007),  0x00, 0x00, 0x00, 0x00),
     m_bitmap        (),
     m_spriteRAM     ()
 {
@@ -31,8 +30,7 @@ PPU(Cpu65XX::Memory& cpuMemory) :
               (Register*)&m_mask,
               (Register*)&m_status,
               (Register*)&m_oamAddress,
-              &m_oamData,
-              &m_oamDMA,
+              (Register*)&m_oamData,
               &m_scroll,
               &m_address,
               &m_data }) {
