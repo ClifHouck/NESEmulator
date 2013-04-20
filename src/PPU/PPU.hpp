@@ -154,6 +154,15 @@ private:
         ~OAMData() {}
     };
 
+    class PPUScroll : public WriteOnlyRegister
+    {
+    public:
+        PPUScroll(u8_byte *backing) :
+            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF)
+        {}
+        ~PPUScroll() {}
+    };
+
     // PPU Control and Status Registers
     PPUController   m_control; 
     PPUMask         m_mask;
@@ -164,7 +173,7 @@ private:
     OAMData         m_oamData;
 
     // PPU VRAM Access Registers
-    Register        m_scroll;
+    PPUScroll       m_scroll;
     Register        m_address;
     Register        m_data;
 
