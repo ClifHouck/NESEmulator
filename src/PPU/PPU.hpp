@@ -163,6 +163,39 @@ private:
         ~PPUScroll() {}
     };
 
+    class PPUAddress : public WriteOnlyRegister
+    {
+    public:
+        PPUAddress(u8_byte *backing) :
+            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF),
+            m_isHighWrite (true),
+            m_highByte (0x00),
+            m_lowByte (0x00)
+        {}
+        ~PPUAddress() {}
+
+        u16_word address() const {
+            return (m_highByte * 0x100) + m_lowByte;
+        }
+
+        virtual void write(u8_byte data, u8_byte mask = 0xFF) {
+            WriteOnlyRegister::write(data, mask);
+            if (m_isHighWrite) {
+                m_highByte = rawRead();
+            }
+            else {
+                m_lowByte = rawRead();
+            }
+            m_isHighWrite = !m_isHighWrite;
+        }
+
+    private:
+        bool    m_isHighWrite;
+        u8_byte m_highByte;
+        u8_byte m_lowByte;
+    };
+
+
     // PPU Control and Status Registers
     PPUController   m_control; 
     PPUMask         m_mask;
@@ -174,7 +207,7 @@ private:
 
     // PPU VRAM Access Registers
     PPUScroll       m_scroll;
-    Register        m_address;
+    PPUAddress      m_address;
     Register        m_data;
 
     std::vector<Register*> m_registers;
