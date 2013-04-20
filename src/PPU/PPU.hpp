@@ -73,6 +73,14 @@ private:
             return 0x2000 + ((rawRead() & BASE_NAMETABLE_ADDRESS_MASK) != 0) * 0x400;
         }
         bool vramAddressIncrement() const { return rawRead() & VRAM_ADDRESS_INCREMENT_MASK; }
+
+        int getAddressIncrementAmount() const { 
+            if (vramAddressIncrement()) {
+                return 32;
+            }
+            return 1;
+        }
+
         u16_word spritePatternTableAddress() const { 
             return ((rawRead() & SPRITE_PATTERN_TABLE_ADDRESS_MASK) != 0) * 0x1000; 
         }
@@ -154,25 +162,27 @@ private:
         ~OAMData() {}
     };
 
-    class PPUScroll : public WriteOnlyRegister
+    class VRAMScroll : public WriteOnlyRegister
     {
     public:
-        PPUScroll(u8_byte *backing) :
+        VRAMScroll(u8_byte *backing) :
             WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF)
         {}
-        ~PPUScroll() {}
+        ~VRAMScroll() {}
     };
 
-    class PPUAddress : public WriteOnlyRegister
+    class VRAMAddress : public WriteOnlyRegister
     {
     public:
-        PPUAddress(u8_byte *backing) :
+        VRAMAddress(u8_byte *backing,
+                    PPUController &ppuController) :
             WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF),
+            m_ppuController (ppuController),
             m_isHighWrite (true),
             m_highByte (0x00),
             m_lowByte (0x00)
         {}
-        ~PPUAddress() {}
+        ~VRAMAddress() {}
 
         u16_word address() const {
             return (m_highByte * 0x100) + m_lowByte;
@@ -189,12 +199,50 @@ private:
             m_isHighWrite = !m_isHighWrite;
         }
 
+        void increment() {
+            rawWrite(rawRead() + m_ppuController.getAddressIncrementAmount());
+        }
+
     private:
-        bool    m_isHighWrite;
-        u8_byte m_highByte;
-        u8_byte m_lowByte;
+        PPUController  &m_ppuController;
+        bool            m_isHighWrite;
+        u8_byte         m_highByte;
+        u8_byte         m_lowByte;
     };
 
+    class VRAMData : public Register 
+    {
+    public:
+        VRAMData(u8_byte *backing, 
+                 VRAMAddress &vramAddress,
+                 Cpu65XX::Memory& cpuMemory) :
+            Register(backing, 0x00, 0x00, 0x00, 0x00),
+            m_vramAddress (vramAddress),
+            m_cpuMemory (cpuMemory)
+        {}
+        ~VRAMData() {}
+
+        virtual u8_byte read() {
+            // Load the data from CPU memory into this register.
+            Register::rawWrite(m_cpuMemory.byteAt(m_vramAddress.address()));
+            m_vramAddress.increment();
+            return Register::read();
+        }
+        
+        virtual void write(u8_byte data, u8_byte mask = 0xFF) {
+            u8_byte &VRAMTarget = m_cpuMemory.byteAt(m_vramAddress.address());
+            // Update the contents of this register.
+            rawWrite(VRAMTarget);
+            Register::write(data, mask);
+            // Write back to the CPU's memory.
+            VRAMTarget = rawRead();
+            m_vramAddress.increment();
+        }
+
+    private:
+        VRAMAddress         &m_vramAddress;
+        Cpu65XX::Memory     &m_cpuMemory; 
+    };
 
     // PPU Control and Status Registers
     PPUController   m_control; 
@@ -206,9 +254,9 @@ private:
     OAMData         m_oamData;
 
     // PPU VRAM Access Registers
-    PPUScroll       m_scroll;
-    PPUAddress      m_address;
-    Register        m_data;
+    VRAMScroll      m_scroll;
+    VRAMAddress     m_address;
+    VRAMData        m_data;
 
     std::vector<Register*> m_registers;
 
