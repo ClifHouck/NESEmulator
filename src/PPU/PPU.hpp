@@ -49,9 +49,6 @@ protected:
     void powerOffImpl();
         
 private:
-    bool m_NMI;
-
-    unsigned int m_clock;
 
     class PPUController : public ReadOnlyRegister
     {
@@ -123,8 +120,10 @@ private:
 
     class PPUStatus : public Register {
     public:
-        PPUStatus(u8_byte *backing) :
-            Register(backing, 0xA0, 0x00, 0x00, 0x80)
+        PPUStatus(u8_byte *backing,
+                  bool    &isFirstWrite) :
+            Register(backing, 0xA0, 0x00, 0x00, 0x80),
+            m_isFirstWrite (isFirstWrite)
         {}
         ~PPUStatus() {}
 
@@ -135,13 +134,16 @@ private:
 
         virtual u8_byte read() {
             rawWrite(rawRead() & ~VERTICAL_BLANK_STARTED_MASK);
-            // TODO: Clear 'address latch'
+            m_isFirstWrite = true;
             return Register::read();
         }
 
         bool spriteOverflow() { return rawRead() & SPRITE_OVERFLOW_MASK; }
         bool sprite0Hit() { return rawRead() & SPRITE_0_HIT_MASK; }
         bool verticalBlank() { return rawRead() & VERTICAL_BLANK_STARTED_MASK; }
+
+    private:
+        bool &m_isFirstWrite;
     };
 
     class OAMAddress : public WriteOnlyRegister
@@ -151,34 +153,98 @@ private:
             WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF)
         {}
         ~OAMAddress() {}
+
+        void increment() { rawWrite(rawRead() + 1); }
+
+        u8_byte address() const { return rawRead(); }
     };
 
     class OAMData : public Register
     {
     public:
-        OAMData(u8_byte *backing) :
-            Register(backing, 0x00, 0x00, 0x00, 0x00)
+        OAMData(u8_byte *backing,
+                u8_byte *spriteRAM,
+                OAMAddress &address) :
+            Register(backing, 0x00, 0x00, 0x00, 0x00),
+            m_spriteRAM (spriteRAM),
+            m_address(address)
         {}
-        ~OAMData() {}
+        ~OAMData() {
+            m_spriteRAM = nullptr;
+        }
+
+        virtual u8_byte read() {
+            rawWrite(m_spriteRAM[m_address.address()]);
+            return Register::read();
+        }
+
+        virtual void write(u8_byte data, u8_byte mask = 0xFF) {
+            Register::write(data, mask);
+            m_spriteRAM[m_address.address()] = rawRead();
+            m_address.increment();
+        }
+
+    private:
+        u8_byte    *m_spriteRAM;
+        OAMAddress &m_address;
+    };
+
+    class OAMDMA : public WriteOnlyRegister 
+    {
+    public:
+        OAMDMA(u8_byte *backing) :
+            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0x00)
+        {}
+        ~OAMDMA() {}
+
+        u16_word address() const { return rawRead() * 0x100; }
+    private:
     };
 
     class VRAMScroll : public WriteOnlyRegister
     {
     public:
-        VRAMScroll(u8_byte *backing) :
-            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF)
+        VRAMScroll(u8_byte *backing,
+                   bool &isFirstWrite) :
+            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF),
+            m_isFirstWrite (isFirstWrite)
         {}
         ~VRAMScroll() {}
+
+        virtual void write(u8_byte data, u8_byte mask = 0xFF) {
+            WriteOnlyRegister::write(data, mask);
+            if (m_isFirstWrite) {
+                m_horizontalScrollOrigin = rawRead();
+            }
+            else {
+                m_verticalScrollOrigin = rawRead();
+            }
+            m_isFirstWrite = !m_isFirstWrite;
+        }
+
+        u8_byte horizontalScrollOrigin() const {
+            return m_horizontalScrollOrigin;
+        }
+
+        u8_byte verticalScrollOrigin() const {
+            return m_verticalScrollOrigin;
+        }
+
+    private:
+        u8_byte m_horizontalScrollOrigin;
+        u8_byte m_verticalScrollOrigin;
+        bool   &m_isFirstWrite;
     };
 
     class VRAMAddress : public WriteOnlyRegister
     {
     public:
         VRAMAddress(u8_byte *backing,
+                    bool &isFirstWrite,
                     PPUController &ppuController) :
             WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF),
+            m_isFirstWrite (isFirstWrite),
             m_ppuController (ppuController),
-            m_isHighWrite (true),
             m_highByte (0x00),
             m_lowByte (0x00)
         {}
@@ -190,13 +256,13 @@ private:
 
         virtual void write(u8_byte data, u8_byte mask = 0xFF) {
             WriteOnlyRegister::write(data, mask);
-            if (m_isHighWrite) {
+            if (m_isFirstWrite) {
                 m_highByte = rawRead();
             }
             else {
                 m_lowByte = rawRead();
             }
-            m_isHighWrite = !m_isHighWrite;
+            m_isFirstWrite = !m_isFirstWrite;
         }
 
         void increment() {
@@ -205,7 +271,7 @@ private:
 
     private:
         PPUController  &m_ppuController;
-        bool            m_isHighWrite;
+        bool            m_isFirstWrite;
         u8_byte         m_highByte;
         u8_byte         m_lowByte;
     };
@@ -244,6 +310,10 @@ private:
         Cpu65XX::Memory     &m_cpuMemory; 
     };
 
+    bool m_NMI;
+
+    unsigned int m_clock;
+
     // PPU Control and Status Registers
     PPUController   m_control; 
     PPUMask         m_mask;
@@ -252,11 +322,15 @@ private:
     // PPU Object Attribute Memory registers
     OAMAddress      m_oamAddress;
     OAMData         m_oamData;
+    OAMDMA          m_oamDMA;
 
     // PPU VRAM Access Registers
     VRAMScroll      m_scroll;
     VRAMAddress     m_address;
     VRAMData        m_data;
+
+    //1st write flip-flop/latch.
+    bool            m_isFirstWrite;
 
     std::vector<Register*> m_registers;
 

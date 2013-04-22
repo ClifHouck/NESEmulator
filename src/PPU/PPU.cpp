@@ -5,19 +5,21 @@
 PPU::
 PPU(Cpu65XX::Memory& cpuMemory) :
     PoweredDevice(this),
-    m_NMI           (false),
-    m_clock         (0),
+    m_isFirstWrite(true),
+    m_NMI(false),
+    m_clock(0),
     // Register information derived from: 
     // http://wiki.nesdev.com/w/index.php/PPU_power_up_state
     //              
     m_control       (&cpuMemory.byteAt(0x2000)),
     m_mask          (&cpuMemory.byteAt(0x2001)), 
-    m_status        (&cpuMemory.byteAt(0x2002)),
+    m_status        (&cpuMemory.byteAt(0x2002), m_isFirstWrite),
     m_oamAddress    (&cpuMemory.byteAt(0x2003)),
     // TODO: Add write-only behavior here.
-    m_oamData       (&cpuMemory.byteAt(0x2004)),
-    m_scroll        (&cpuMemory.byteAt(0x2005)),
-    m_address       (&cpuMemory.byteAt(0x2006), m_control),
+    m_oamData       (&cpuMemory.byteAt(0x2004), m_spriteRAM, m_oamAddress),
+    m_oamDMA        (&cpuMemory.byteAt(0x4014)),
+    m_scroll        (&cpuMemory.byteAt(0x2005), m_isFirstWrite),
+    m_address       (&cpuMemory.byteAt(0x2006), m_isFirstWrite, m_control),
     m_data          (&cpuMemory.byteAt(0x2007), m_address, cpuMemory),
     m_bitmap        (),
     m_spriteRAM     ()
