@@ -20,6 +20,8 @@ public:
     const static unsigned int memorySize        = 16 * 1024;
     const static unsigned int spriteRamSize     = 256;
     const static unsigned int bitmapSize        = width * height * 3;
+    const static unsigned int spriteSize        = 4;
+    const static unsigned int tileSize          = 16;
 
     // FIXME: Remove this and make a general memory class.
     class Memory {
@@ -84,8 +86,8 @@ private:
         u16_word backgroundPatternTableAddress() const {
             return ((rawRead() & BACKGROUND_PATTERN_TABLE__ADDRESS_MASK) != 0) * 0x1000;
         }
-        std::pair<u8_byte, u8_byte> spriteSize() const {
-            return std::pair<u8_byte, u8_byte>(8, 8 + (8 * (rawRead() & SPRITE_SIZE_MASK)));
+        std::pair<unsigned int, unsigned int> spriteSize() const {
+            return std::pair<unsigned int, unsigned int>(8, 8 + (8 * (rawRead() & SPRITE_SIZE_MASK)));
         }
         bool masterSlaveSelect() const { return rawRead() & MASTER_SLAVE_SELECT_MASK; }
         bool generateNMI() const { return rawRead() & GENERATE_NMI_MASK; }
@@ -198,7 +200,6 @@ private:
         ~OAMDMA() {}
 
         u16_word address() const { return rawRead() * 0x100; }
-    private:
     };
 
     class VRAMScroll : public WriteOnlyRegister
@@ -271,7 +272,7 @@ private:
 
     private:
         PPUController  &m_ppuController;
-        bool            m_isFirstWrite;
+        bool           &m_isFirstWrite;
         u8_byte         m_highByte;
         u8_byte         m_lowByte;
     };
@@ -308,6 +309,50 @@ private:
     private:
         VRAMAddress         &m_vramAddress;
         Cpu65XX::Memory     &m_cpuMemory; 
+    };
+
+    class Sprite 
+    {
+    public:
+        Sprite(u8_byte *backing,
+               PPUController &controller) :
+            m_backing (backing),
+            m_controller (controller)
+        {}
+        ~Sprite() { m_backing = nullptr; }
+
+        const static u8_byte VERTICAL_FLIP_MASK         = 0x80;
+        const static u8_byte HORIZONTAL_FLIP_MASK       = 0x40;
+        const static u8_byte BACKGROUND_PRIORITY_MASK   = 0x20;
+        const static u8_byte SPRITE_PALETTE_MASK        = 0x03;
+
+        unsigned int x() const { return m_backing[3]; }
+        unsigned int y() const { return m_backing[0] - 1; }
+
+        std::pair<unsigned int, unsigned int> size() const {
+            return m_controller.spriteSize();
+        }
+
+        unsigned int numTiles() {
+            return size().second >> 3;
+        }
+
+        u16_word tileAddress() {
+            if (size().second == 8) {
+                return m_controller.spritePatternTableAddress() + (tileSize * m_backing[1]);
+            }
+            return ((m_backing[1] & 0x01) * 0x1000) + ((m_backing[1] >> 1) * 2);
+        }
+
+        bool verticalFlip() const { return VERTICAL_FLIP_MASK & m_backing[2]; }
+        bool horizontalFlip() const { return HORIZONTAL_FLIP_MASK & m_backing[2]; }
+        bool isBehindBackground() const { return BACKGROUND_PRIORITY_MASK & m_backing[2]; }
+
+        u8_byte paletteNumber() const { return SPRITE_PALETTE_MASK & m_backing[2]; }
+
+    private:
+        u8_byte       *m_backing;
+        PPUController &m_controller;
     };
 
     bool m_NMI;
