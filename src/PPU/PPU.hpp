@@ -7,6 +7,7 @@
 #include "CPU/Cpu65XX.hpp"
 
 #include <vector>
+#include <cassert>
 
 class PPU : public PoweredDevice
 {
@@ -309,6 +310,31 @@ private:
     private:
         VRAMAddress         &m_vramAddress;
         Cpu65XX::Memory     &m_cpuMemory; 
+    };
+
+    class Tile
+    {
+    public:
+        Tile(u8_byte *backing) :
+            m_backing (backing)
+        {}
+        ~Tile() {}
+
+        static const unsigned int sideLength = 8;
+        static const unsigned int byteSize   = 16;
+
+        u8_byte color(unsigned int x, unsigned int y) const {
+            assert(0 <= x < sideLength);
+            assert(0 <= y < sideLength);
+
+            bool bit0 = m_backing[x] & (0x01 << y);
+            bool bit1 = m_backing[sideLength + x] & (0x01 << y);
+
+            return ((u8_byte)bit1 << 1) & ((u8_byte)bit0);
+        }
+
+    private:
+        u8_byte *m_backing;
     };
 
     class Sprite 
