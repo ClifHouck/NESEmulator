@@ -74,7 +74,7 @@ private:
         }
         bool vramAddressIncrement() const { return rawRead() & VRAM_ADDRESS_INCREMENT_MASK; }
 
-        int getAddressIncrementAmount() const { 
+        int addressIncrementAmount() const { 
             if (vramAddressIncrement()) {
                 return 32;
             }
@@ -200,7 +200,7 @@ private:
         }
 
         void increment() {
-            rawWrite(rawRead() + m_ppuController.getAddressIncrementAmount());
+            rawWrite(rawRead() + m_ppuController.addressIncrementAmount());
         }
 
     private:
