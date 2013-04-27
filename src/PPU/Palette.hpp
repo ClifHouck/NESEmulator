@@ -23,7 +23,12 @@ public:
         u8_byte m_blue;
     };
 
-    Color color() const;
+    Color   color() const;
+    u8_byte value() const;
+
+    static const unsigned int   LUMINANCE_SHIFT     = 4; 
+    static const u8_byte        LUMINANCE_MASK      = 0x30;
+    static const u8_byte        CHROMINANCE_MASK    = 0x0F;
 
 private:
     static const Color colors[4][16];

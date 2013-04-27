@@ -1,1 +1,4 @@
-add_library(PPU PPU.cpp)
+add_library(PPU 
+    PPU.cpp
+    Palette.cpp
+)

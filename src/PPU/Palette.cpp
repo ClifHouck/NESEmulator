@@ -1,5 +1,50 @@
 #include "Palette.hpp"
 
+Palette::
+Palette(u8_byte value) :
+    m_value (value)
+{
+    u8_byte luminance   = (value & LUMINANCE_MASK) >> LUMINANCE_SHIFT;
+    u8_byte chrominance = (value & CHROMINANCE_MASK); 
+    m_color = &(colors[luminance][chrominance]);
+}
+
+Palette::Color
+Palette::
+color() const
+{
+    return *m_color;
+}
+
+Palette::Color::
+Color(u8_byte red, u8_byte green, u8_byte blue) :
+    m_red (red),
+    m_green (green),
+    m_blue (blue)
+{
+}
+
+u8_byte
+Palette::Color::
+red() const
+{
+    return m_red;
+}
+
+u8_byte
+Palette::Color::
+green() const
+{
+    return m_green;
+}
+
+u8_byte
+Palette::Color::
+blue() const
+{
+    return m_blue;
+}
+
 // From http://www.thealmightyguru.com/Games/Hacking/Wiki/index.php?title=NES_Palette
 // The array is laid out like the following:
 // colors[luminance][chrominance]
@@ -89,48 +134,3 @@ const Palette::Color Palette::colors[4][16] = {
         Color(0x00, 0x00, 0x00),
     }
 };
-
-Palette::
-Palette(u8_byte value) :
-    m_value (value)
-{
-    u8_byte luminance   = (value & 0x30) >> 4;
-    u8_byte chrominance = (value & 0x0F); 
-    m_color = &(colors[luminance][chrominance]);
-}
-
-Palette::Color
-Palette::
-color() const
-{
-    return *m_color;
-}
-
-Palette::Color::
-Color(u8_byte red, u8_byte green, u8_byte blue) :
-    m_red (red),
-    m_green (green),
-    m_blue (blue)
-{
-}
-
-u8_byte
-Palette::Color::
-red() const
-{
-    return m_red;
-}
-
-u8_byte
-Palette::Color::
-green() const
-{
-    return m_green;
-}
-
-u8_byte
-Palette::Color::
-blue() const
-{
-    return m_blue;
-}
