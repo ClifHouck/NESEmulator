@@ -19,16 +19,32 @@ Memory::
 
 u8_byte 
 Memory::
-read(const address_t address) const
+read(const address_t address) 
+{
+    return getData(address);
+}
+
+void    
+Memory::
+write(const address_t address, data_t data)
+{
+    assert(address > 0);
+    assert(address < m_size);
+    setData(address, data);
+}
+
+Memory::data_t
+Memory::
+getData(address_t address)
 {
     assert(address > 0);
     assert(address < m_size);
     return m_backing[address];
 }
 
-void    
+void
 Memory::
-write(const address_t address, data_t data)
+setData(address_t address, data_t data)
 {
     assert(address > 0);
     assert(address < m_size);
