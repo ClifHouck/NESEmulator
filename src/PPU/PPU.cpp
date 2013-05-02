@@ -3,24 +3,24 @@
 #include <algorithm>
 
 PPU::
-PPU(Cpu65XX::Memory& cpuMemory) :
+PPU(Cpu65XX::Memory &cpuMemory, 
+    Clock &clock) :
     PoweredDevice(this),
+    ClockedDevice(clockDivisor),
     m_isFirstWrite(true),
     m_NMI(false),
-    m_clock(0),
+    m_clock(clock),
     // Register information derived from: 
     // http://wiki.nesdev.com/w/index.php/PPU_power_up_state
-    //              
-    m_control       (&cpuMemory.byteAt(0x2000)),
-    m_mask          (&cpuMemory.byteAt(0x2001)), 
-    m_status        (&cpuMemory.byteAt(0x2002), m_isFirstWrite),
-    m_oamAddress    (&cpuMemory.byteAt(0x2003)),
-    // TODO: Add write-only behavior here.
-    m_oamData       (&cpuMemory.byteAt(0x2004), m_spriteRAM, m_oamAddress),
-    m_oamDMA        (&cpuMemory.byteAt(0x4014)),
-    m_scroll        (&cpuMemory.byteAt(0x2005), m_isFirstWrite),
-    m_address       (&cpuMemory.byteAt(0x2006), m_isFirstWrite, m_control),
-    m_data          (&cpuMemory.byteAt(0x2007), m_address, cpuMemory),
+    m_control       (&cpuMemory.byteAt(CONTROL_ADDRESS)),
+    m_mask          (&cpuMemory.byteAt(MASK_ADDRESS)), 
+    m_status        (&cpuMemory.byteAt(STATUS_ADDRESS), m_isFirstWrite),
+    m_oamAddress    (&cpuMemory.byteAt(OAM_ADDRESS_ADDRESS)),
+    m_oamData       (&cpuMemory.byteAt(OAM_DATA_ADDRESS), m_spriteRAM, m_oamAddress),
+    m_oamDMA        (&cpuMemory.byteAt(OAM_DMA_ADDRESS)),
+    m_scroll        (&cpuMemory.byteAt(SCROLL_ADDRESS), m_isFirstWrite),
+    m_address       (&cpuMemory.byteAt(SCROLL_ADDRESS_ADDRESS), m_isFirstWrite, m_control),
+    m_data          (&cpuMemory.byteAt(SCROLL_DATA_ADDRESS), m_address, cpuMemory),
     m_bitmap        (),
     m_spriteRAM     ()
 {
@@ -49,14 +49,12 @@ void
 PPU::
 tick()
 {
-    m_clock++;
-
     //Y-coordinate basically.
-    m_currentScanline = (m_clock / ticksPerScanline) - 1;
+    m_currentScanline = (m_clock.count() / ticksPerScanline) - 1;
     // Don't draw -1 scanline...
     if (m_currentScanline < 0) { return; }
     //X-coordinate basically.
-    m_currentCycle    =  m_clock % ticksPerScanline;
+    m_currentCycle    =  m_clock.count() % ticksPerScanline;
 }
 
 PPU::Memory::
@@ -155,4 +153,10 @@ powerOffImpl()
     std::for_each(m_registers.begin(), m_registers.end(), [] (Register* reg) {
             reg->powerOff();
     });
+}
+
+RegisterBlock::data_t
+RegisterBlock::
+getData(address_t address) 
+{
 }

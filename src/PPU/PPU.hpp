@@ -4,15 +4,17 @@
 #include "utility/DataTypes.hpp"
 #include "utility/Register.hpp"
 #include "utility/PoweredDevice.hpp"
+#include "utility/Clock.hpp"
 #include "CPU/Cpu65XX.hpp"
 
 #include <vector>
 #include <cassert>
 
-class PPU : public PoweredDevice
+class PPU : public PoweredDevice, public ClockedDevice
 {
 public:
-    PPU(Cpu65XX::Memory& cpuMemory);
+    PPU(Cpu65XX::MainMemory &cpuMemory,
+        Clock& clock);
     ~PPU();
 
     const static unsigned int width             = 256;
@@ -23,20 +25,32 @@ public:
     const static unsigned int bitmapSize        = width * height * 3;
     const static unsigned int spriteSize        = 4;
     const static unsigned int tileSize          = 16;
+    const static unsigned int clockDivisor      = 4;
 
-    // FIXME: Remove this and make a general memory class.
-    class Memory {
-        public:
-            Memory();
-            Memory(u8_byte * toLoad, unsigned int size);
+    const static u16_word CONTROL_ADDRESS           = 0x2000;
+    const static u16_word MASK_ADDRESS              = 0x2001;
+    const static u16_word STATUS_ADDRESS            = 0x2002;
+    const static u16_word OAM_ADDRESS_ADDRESS       = 0x2003;
+    const static u16_word OAM_DATA_ADDRESS          = 0x2004;
+    const static u16_word OAM_DMA_ADDRESS           = 0x4014; 
+    const static u16_word SCROLL_ADDRESS            = 0x2005;
+    const static u16_word SCROLL_ADDRESS_ADDRESS    = 0x2006;
+    const static u16_word SCROLL_DATA_ADDRESS       = 0x2007;
 
-            u8_byte& byteAt(const u16_word& address);
+    class RegisterBlock : public Memory 
+    {
+    public:
+        RegisterBlock(PPU &ppu);
 
-        private:
-            u8_byte m_memory[memorySize];
+    protected:
+        virtual data_t getData(address_t address);
+        virtual void   setData(address_t address, data_t data);
+
+    private:
+        PPU &m_ppu;
     };
 
-    void tick();
+    virtual void tick();
 
     void signalNMI();
 
@@ -383,7 +397,7 @@ private:
 
     bool m_NMI;
 
-    unsigned int m_clock;
+    Clock &m_clock;
 
     // PPU Control and Status Registers
     PPUController   m_control; 
