@@ -7,6 +7,9 @@
 #define CPU65XX_H
 
 #include "utility/DataTypes.hpp"
+#include "utility/PoweredDevice.hpp"
+#include "utility/Clock.hpp"
+#include "utility/Memory.hpp"
 
 #include <bitset>
 #include <string>
@@ -14,16 +17,17 @@
 #include <map>
 #include <set>
 
-#define MAIN_MEM_SIZE (64 * 1024)
-
-class Cpu65XX
+class Cpu65XX : public PoweredDevice, public ClockedDevice
 {
     public:
-        Cpu65XX();
-        Cpu65XX(u8_byte * toLoad, unsigned int size);
+        Cpu65XX(Memory& memory);
 
         ~Cpu65XX();
 
+        static const unsigned int mainMemorySize = 64 * 1024;
+        static const unsigned int clockDivisor   = 12;
+
+        // TODO: Derive from register utility class.
         class StatusRegister {
             public:
                 StatusRegister();
@@ -54,25 +58,6 @@ class Cpu65XX
                 // Status Register
                 std::bitset<8> m_status;
         };
-
-        class Memory {
-            public: 
-                Memory();
-                Memory(u8_byte * toLoad, unsigned int size);
-                
-                // mutators
-                u8_byte&  byteAt(const u16_word& address);
-                u8_byte&  byteAtZeroPage(const u8_byte& address);
-
-                // accessors
-                u16_word  wordAt(const u16_word& address, bool indirect = false);
-                u16_word  wordAtZeroPage(const u8_byte& address);
-
-            private:
-                u16_word trueAddress(const u16_word&) const;
-
-                u8_byte m_memory[MAIN_MEM_SIZE];
-        }; 
 
         class Instruction {
             public:
@@ -165,9 +150,12 @@ class Cpu65XX
         u8_byte&   popStackByte();
         u16_word   popStackWord();
 
-        Memory&     memory();
-
     private:
+        void resetImpl();
+        void powerOnImpl();
+        void powerOffImpl();
+
+        void builMemoryOperationFuncs();
         void buildInstructionSet();
         void buildDisassemblyFunctions();
         void buildCombinedALUOpcodes();
@@ -180,14 +168,18 @@ class Cpu65XX
         u8_byte           m_S;  // Stack pointer
         StatusRegister    m_status;
 
-        Memory            m_memory;
+        Memory           &m_memory;
 
         //Set of instructions used by the CPU
         Instruction*      m_instructions;
-        std::map<const char*, std::function<std::string ()> > m_disassemblyFunctions;
         std::set<u8_byte> m_illegalInstructions;
         // The next instruction to run.
         Instruction*      m_queuedInstruction;
+
+        //Helper functions.
+        std::map<const char*, std::function<std::string ()>> m_disassemblyFunctions;
+        std::map<const char*, std::function<void(u8_byte)>>  m_writeOperandFuncs;
+        std::map<const char*, std::function<u8_byte(void)>>  m_readOperandFuncs;
 
         // Has an NMI been requested? (This is likely the screen redraw NMI)
         bool              m_NMI;

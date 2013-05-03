@@ -4,13 +4,16 @@
 #include <iomanip>
 #include <sstream>
 #include <algorithm>
+#include <cassert>
 
 // For some reason the stack appears to startup at 0xFD
 const u8_byte initialStackValue = 0xFD;
 
 Cpu65XX::
-Cpu65XX() :
-    m_memory (),
+Cpu65XX(Memory& memory) :
+    PoweredDevice(this),
+    ClockedDevice(clockDivisor),
+    m_memory (memory),
     m_A (0),
     m_X (0),
     m_Y (0),
@@ -22,23 +25,7 @@ Cpu65XX() :
     m_illegalInstructions ()
 {
     m_instructions = new Instruction[256];
-    buildDisassemblyFunctions();
-    buildInstructionSet();
-}
-
-Cpu65XX::
-Cpu65XX(u8_byte * toLoad, unsigned int size) :
-        m_memory (toLoad, size), 
-        m_A (0),
-        m_X (0),
-        m_Y (0),
-        m_PC (0),
-        m_S (initialStackValue),
-        m_downCycles (0),
-        m_queuedInstruction (0),
-        m_illegalInstructions ()
-{
-    m_instructions = new Instruction[256];
+    buildMemoryOperationFuncs();
     buildDisassemblyFunctions();
     buildInstructionSet();
 }
@@ -47,6 +34,7 @@ Cpu65XX::
 ~Cpu65XX() 
 {
     delete[] m_instructions;
+    m_instructions = nullptr;
 }
 
 void
@@ -164,6 +152,55 @@ buildDisassemblyFunctions()
 
 void
 Cpu65XX::
+buildMemoryOperationFuncs()
+{
+    m_readOperandFuncs["[nn]"] = [this]() -> u8_byte {
+        m_memory.read<u8_byte>(byteOperand());
+    };
+    m_readOperandFuncs["[nn+X]"] = [this]() -> u8_byte {
+        m_memory.read<u8_byte>(zeroPage(byteOperand() + X()));
+    };
+    m_readOperandFuncs["[WORD[nn+X]]"] = [this]() -> u8_byte {
+        m_memory.read<u8_byte>(m_memory.rawRead<u16_word>(zeroPage(byteOperand() + X())));
+    };
+    m_readOperandFuncs["[WORD[nn]+Y]"] = [this]() -> u8_byte {
+        m_memory.read<u8_byte>(m_memory.rawRead<u16_word>(zeroPage(byteOperand()) + Y()));
+    };
+    m_readOperandFuncs["[nnnn]"] = [this]() -> u8_byte {
+        m_memory.read<u8_byte>(wordOperand());
+    };
+    m_readOperandFuncs["[nnnn+X]"] = [this]() -> u8_byte {
+        m_memory.read<u8_byte>(byteOperand() + X());
+    };
+    m_readOperandFuncs["[nn]"] = [this]() -> u8_byte {
+        m_memory.read<u8_byte>(wordOperand() + Y());
+    };
+
+    m_writeOperandFuncs["[nn]"]   = [this](u8_byte data) -> void { 
+        m_memory.write(byteOperand(), data); 
+    };   
+    m_writeOperandFuncs["[nn+X]"] = [this](u8_byte data) -> void { 
+       m_memory.write(zeroPage(byteOperand() + X()), data); 
+    };            
+    m_writeOperandFuncs["[WORD[nn+x]]"] = [this](u8_byte data) -> void { 
+       m_memory.write(m_memory.read<u16_word>(zeroPage(byteOperand() + X())), data); 
+    };
+    m_writeOperandFuncs["[WORD[nn]+Y]"] = [this](u8_byte data) -> void { 
+        m_memory.write(m_memory.read<u16_word>(zeroPage(byteOperand()) + Y()), data); 
+    };
+    m_writeOperandFuncs["[nnnn]"] = [this](u8_byte data) -> void { 
+        m_memory.write(wordOperand(), data); 
+    };                         
+    m_writeOperandFuncs["[nnnn+X]"] = [this](u8_byte data) -> void { 
+        m_memory.write(wordOperand() + X(), data); 
+    };                   
+    m_writeOperandFuncs["[nnnn+Y]"] = [this](u8_byte data) -> void { 
+        m_memory.write(wordOperand() + Y(), data); 
+    };
+}
+
+void
+Cpu65XX::
 buildInstructionSet() 
 {
     // Register to Register Transfer
@@ -171,6 +208,10 @@ buildInstructionSet()
     std::function<unsigned int()>   cycleFunc           = [this] { return 2; };
     std::function<void ()>          workFunc            = [this] { setY(A()); };
     std::function<std::string ()>   disassemblyFunc     = m_disassemblyFunctions["None"];
+    auto &read  = m_readOperandFuncs;
+    auto &write = m_writeOperandFuncs; 
+
+
     m_instructions[0xA8] = Instruction(0xA8, 1, "TAY", disassemblyFunc, cycleFunc, workFunc);
     // AA        nz----  2   TAX         Transfer Accumulator to X    X=A
     workFunc = [this] { setX(A()); };
@@ -190,38 +231,38 @@ buildInstructionSet()
 
     // Load Register from Memory
     // A9 nn     nz----  2   LDA #nn     Load A with Immediate     A=nn
-    workFunc = [this] { setA(byteOperand()); };
+    workFunc = [this] { setA(read["nn"]()); };
     disassemblyFunc = m_disassemblyFunctions["Immediate"];
     m_instructions[0xA9] = Instruction(0xA9, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // A5 nn     nz----  3   LDA nn      Load A with Zero Page     A=[nn]
     cycleFunc   = [this] { return 3; };
-    workFunc    = [this] { setA(m_memory.byteAtZeroPage(byteOperand())); };
+    workFunc    = [this] { setA(read["[nn]"]()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xA5] = Instruction(0xA5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // B5 nn     nz----  4   LDA nn,X    Load A with Zero Page,X   A=[nn+X]
     cycleFunc   = [this] { return 4; };
-    workFunc    = [this] { setA(m_memory.byteAtZeroPage(byteOperand() + X())); };
+    workFunc    = [this] { setA(read["[nn+X]"]()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0xB5] = Instruction(0xB5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
     
     // AD nn nn  nz----  4   LDA nnnn    Load A with Absolute      A=[nnnn]
-    workFunc    = [this] { setA(m_memory.byteAt(wordOperand())); }; 
+    workFunc    = [this] { setA(read["[nnnn]"]()); }; 
     disassemblyFunc = m_disassemblyFunctions["AbsoluteMem"];
     m_instructions[0xAD] = Instruction(0xAD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);
     
     // BD nn nn  nz----  4*  LDA nnnn,X  Load A with Absolute,X    A=[nnnn+X]
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };
-    workFunc    = [this] { setA(m_memory.byteAt(wordOperand() + X())); }; 
+    workFunc    = [this] { setA(read["[nnnn+X]"]()); }; 
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0xBD] = Instruction(0xBD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // B9 nn nn  nz----  4*  LDA nnnn,Y  Load A with Absolute,Y    A=[nnnn+Y]
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };
-    workFunc    = [this] { setA(m_memory.byteAt(wordOperand() + Y())); }; 
+    workFunc    = [this] { setA(read["[nnnn+Y]"]()); }; 
     disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];
     m_instructions[0xB9] = Instruction(0xB9, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // A1 nn     nz----  6   LDA (nn,X)  Load A with (Indirect,X)  A=[WORD[nn+X]]
     cycleFunc   = [this] { return 6; };
-    workFunc    = [this] { setA(m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand() + X()))); }; 
+    workFunc    = [this] { setA(read["[WORD[nn+X]]"]); }; 
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
     m_instructions[0xA1] = Instruction(0xA1, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // B1 nn     nz----  5*  LDA (nn),Y  Load A with (Indirect),Y  A=[WORD[nn]+Y]
@@ -841,7 +882,6 @@ buildInstructionSet()
     m_instructions[0x4C] = Instruction(0x4C, 3, "JMP", disassemblyFunc, cycleFunc, workFunc);
     // Glitch: For JMP [nnnn] the operand word cannot cross page boundaries, ie. JMP [03FFh] would 
     // fetch the MSB from [0300h] instead of [0400h]. Very simple workaround would be to place a ALIGN 2 before the data word.
-    // FIXME: Implement Glitch above?
     // 6C nn nn  ------  5   JMP (nnnn)  Jump Indirect              PC=WORD[nnnn]
     cycleFunc   = [this] { return 5; }; 
     workFunc    = [this] { setPC(m_memory.wordAt(wordOperand(), true)); };
@@ -1837,17 +1877,39 @@ memory()
     return m_memory;
 }
 
+void
+Cpu65XX::
+resetImpl()
+{
+    //TODO...
+}
+
+void
+Cpu65XX::
+powerOnImpl()
+{
+    //TODO...
+}
+
+void
+Cpu65XX::
+powerOffImpl()
+{
+    //TODO...
+}
+
 // Begin Memory implementation
 Cpu65XX::Memory::
 Memory()
 {
-    std::fill(m_memory, m_memory + (MAIN_MEM_SIZE), 0x00);
+    std::fill(m_memory, m_memory + mainMemorySize, 0x00);
 }
 
 Cpu65XX::Memory::
 Memory(u8_byte * toLoad, unsigned int size)
 {
-    std::fill(m_memory, m_memory + (MAIN_MEM_SIZE), 0x00);
+    std::fill(m_memory, m_memory + mainMemorySize, 0x00);
+    assert(size <= mainMemorySize);
     std::copy(toLoad, toLoad + size, m_memory);
 }
 
@@ -1871,6 +1933,7 @@ trueAddress(const u16_word& address) const
     }
     // 0x2000 - 0x2007 Are the PPU registers
     // 0x2000 - 0x3FFF Are the same PPU registers mapped over and over. Seems silly...
+    // TODO: Need to route memory access through PPU/APU/etc registers.
     else if (address >= 0x2008 && 
              address <  0x4000) {
         fixedAddress = 0x2000 + (address % 0x0008);
@@ -1902,6 +1965,9 @@ wordAt(const u16_word& address, bool indirect)
 {
     u16_word tAddress = trueAddress(address);
     // Zero page indirect 
+    // (If the address is in the zero page OR we're an indirect read) AND
+    // (The address is at the top of the page)
+    // Then return the word consisting of the bottom (0xXX00) byte of the page, and the last byte (0xXXFF) of the page.
     if ((address < 0x0100 || indirect) && (address & 0x00FF) == 0xFF) {
         return byteAt(address & 0xFF00) * 0x0100 + byteAt(address);
     }
@@ -2129,4 +2195,6 @@ setNegative(bool value)
     m_status[7] = value;    
 }
 // End StatusRegister implementation.
+
+
 
