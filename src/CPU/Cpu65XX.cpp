@@ -37,6 +37,12 @@ Cpu65XX::
     m_instructions = nullptr;
 }
 
+u16_word
+zeroPage(u16_word address) 
+{
+    return address & 0x00FF;
+}
+
 void
 Cpu65XX::
 buildDisassemblyFunctions() 
@@ -60,13 +66,13 @@ buildDisassemblyFunctions()
         std::stringstream output;
         output.fill('0');
         output << std::hex << "($" << std::setw(4) << (int)wordOperand() << ") = "
-               << std::setw(4) << (int)m_memory.wordAt(wordOperand());
+               << std::setw(4) << (int)m_memory.rawRead<u16_word>(wordOperand());
         return output.str();
     };
     m_disassemblyFunctions["ZeroPage"] = [this] {
         std::stringstream output;
         output.fill('0');
-        output << std::hex << "$" << std::setw(2) << (int)byteOperand() << " = " << std::setw(2) << (int)m_memory.byteAt(byteOperand());
+        output << std::hex << "$" << std::setw(2) << (int)byteOperand() << " = " << std::setw(2) << (int)m_memory.rawRead<u8_byte>(byteOperand());
         return output.str();
     };
     m_disassemblyFunctions["ZeroPage,X"] = [this] {
@@ -75,7 +81,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(2) << (int)byteOperand() << ",X @ " 
                << std::setw(2) << (int)(byteOperand() + X()) % 0x100 << " = " 
-               << std::setw(2) << (int)m_memory.byteAtZeroPage(byteOperand() + X());
+               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(zeroPage(byteOperand() + X()));
         return output.str();
     };
     m_disassemblyFunctions["ZeroPage,Y"] = [this] {
@@ -84,7 +90,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(2) << (int)byteOperand() << ",Y @ " 
                << std::setw(2) << (int)(byteOperand() + Y()) % 0x100 << " = " 
-               << std::setw(2) << (int)m_memory.byteAtZeroPage(byteOperand() + Y());
+               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(zeroPage(byteOperand() + Y()));
         return output.str();
     };
     m_disassemblyFunctions["Absolute"] = [this] {
@@ -99,7 +105,7 @@ buildDisassemblyFunctions()
         output.fill('0');
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand()
-               << " = "  << std::setw(2) << (int)m_memory.byteAt(wordOperand());
+               << " = "  << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand());
         return output.str();
     };
     m_disassemblyFunctions["AbsoluteMem"] = [this] {
@@ -107,7 +113,7 @@ buildDisassemblyFunctions()
         output.fill('0');
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand()
-               << " = "  << std::setw(2) << (int)m_memory.byteAt(wordOperand());
+               << " = "  << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand());
         return output.str();
     };
     m_disassemblyFunctions["Absolute,X"] = [this] {
@@ -116,7 +122,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand() << ",X @ " 
                << std::setw(4) << (int)(wordOperand() + X()) << " = " 
-               << std::setw(2) << (int)m_memory.byteAt(wordOperand() + X());
+               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand() + X());
         return output.str();
     };
     m_disassemblyFunctions["Absolute,Y"] = [this] {
@@ -125,7 +131,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand() << ",Y @ " 
                << std::setw(4) << (int)(wordOperand() + Y()) % 0x10000 << " = " 
-               << std::setw(2) << (int)m_memory.byteAt(wordOperand() + Y());
+               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand() + Y());
         return output.str();
     };
     m_disassemblyFunctions["(Indirect,X)"] = [this] {
@@ -134,8 +140,8 @@ buildDisassemblyFunctions()
         output << std::hex << "($" 
                << std::setw(2) << (int)byteOperand() << ",X) @ " 
                << std::setw(2) << (int)((u8_byte)(byteOperand() + X())) << " = " 
-               << std::setw(4) << (int)m_memory.wordAtZeroPage(byteOperand() + X()) << " = "
-               << std::setw(2) << (int)m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand() + X()));
+               << std::setw(4) << (int)m_memory.rawRead<u16_word>(byteOperand() + X()) << " = "
+               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(m_memory.rawRead<u16_word>(byteOperand() + X()));
         return output.str();
     };
     m_disassemblyFunctions["(Indirect),Y"] = [this] {
@@ -143,9 +149,9 @@ buildDisassemblyFunctions()
         output.fill('0');
         output << std::hex << "($" 
                << std::setw(2) << (int)byteOperand() << "),Y = " 
-               << std::setw(4) << (int)m_memory.wordAtZeroPage(byteOperand()) << " @ " 
-               << std::setw(4) << (int)(m_memory.wordAtZeroPage(byteOperand()) + Y()) % 0x10000 << " = "
-               << std::setw(2) << (int)m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand()) + Y());
+               << std::setw(4) << (int)m_memory.rawRead<u16_word>(byteOperand()) << " @ " 
+               << std::setw(4) << (int)(m_memory.rawRead<u16_word>(byteOperand()) + Y()) % 0x10000 << " = "
+               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(m_memory.rawRead<u16_word>(byteOperand()) + Y());
         return output.str();
     };
 }
@@ -155,25 +161,25 @@ Cpu65XX::
 buildMemoryOperationFuncs()
 {
     m_readOperandFuncs["[nn]"] = [this]() -> u8_byte {
-        m_memory.read<u8_byte>(byteOperand());
+        m_memory.read(byteOperand());
     };
     m_readOperandFuncs["[nn+X]"] = [this]() -> u8_byte {
-        m_memory.read<u8_byte>(zeroPage(byteOperand() + X()));
+        m_memory.read(zeroPage(byteOperand() + X()));
     };
     m_readOperandFuncs["[WORD[nn+X]]"] = [this]() -> u8_byte {
-        m_memory.read<u8_byte>(m_memory.rawRead<u16_word>(zeroPage(byteOperand() + X())));
+        m_memory.read(m_memory.rawRead<u16_word>(zeroPage(byteOperand() + X())));
     };
     m_readOperandFuncs["[WORD[nn]+Y]"] = [this]() -> u8_byte {
-        m_memory.read<u8_byte>(m_memory.rawRead<u16_word>(zeroPage(byteOperand()) + Y()));
+        m_memory.read(m_memory.rawRead<u16_word>(zeroPage(byteOperand()) + Y()));
     };
     m_readOperandFuncs["[nnnn]"] = [this]() -> u8_byte {
-        m_memory.read<u8_byte>(wordOperand());
+        m_memory.read(wordOperand());
     };
     m_readOperandFuncs["[nnnn+X]"] = [this]() -> u8_byte {
-        m_memory.read<u8_byte>(byteOperand() + X());
+        m_memory.read(byteOperand() + X());
     };
     m_readOperandFuncs["[nn]"] = [this]() -> u8_byte {
-        m_memory.read<u8_byte>(wordOperand() + Y());
+        m_memory.read(wordOperand() + Y());
     };
 
     m_writeOperandFuncs["[nn]"]   = [this](u8_byte data) -> void { 
@@ -183,10 +189,10 @@ buildMemoryOperationFuncs()
        m_memory.write(zeroPage(byteOperand() + X()), data); 
     };            
     m_writeOperandFuncs["[WORD[nn+x]]"] = [this](u8_byte data) -> void { 
-       m_memory.write(m_memory.read<u16_word>(zeroPage(byteOperand() + X())), data); 
+       m_memory.write(m_memory.rawRead<u16_word>(zeroPage(byteOperand() + X())), data); 
     };
     m_writeOperandFuncs["[WORD[nn]+Y]"] = [this](u8_byte data) -> void { 
-        m_memory.write(m_memory.read<u16_word>(zeroPage(byteOperand()) + Y()), data); 
+        m_memory.write(m_memory.rawRead<u16_word>(zeroPage(byteOperand()) + Y()), data); 
     };
     m_writeOperandFuncs["[nnnn]"] = [this](u8_byte data) -> void { 
         m_memory.write(wordOperand(), data); 
@@ -197,6 +203,14 @@ buildMemoryOperationFuncs()
     m_writeOperandFuncs["[nnnn+Y]"] = [this](u8_byte data) -> void { 
         m_memory.write(wordOperand() + Y(), data); 
     };
+
+    /*
+    m_addressFuncs["WORD[nn]+Y"] = [this]() -> u16_word {
+        return m_memory.rawRead<u16_word>(byteOperand()) + Y();
+    };
+
+    m_addressFuncs[""] = [this]() -> u16_word {};
+    */
 }
 
 void
@@ -210,7 +224,8 @@ buildInstructionSet()
     std::function<std::string ()>   disassemblyFunc     = m_disassemblyFunctions["None"];
     auto &read  = m_readOperandFuncs;
     auto &write = m_writeOperandFuncs; 
-
+    auto readFunc = read["[nn]"];
+    auto writeFunc = write["[nn]"];
 
     m_instructions[0xA8] = Instruction(0xA8, 1, "TAY", disassemblyFunc, cycleFunc, workFunc);
     // AA        nz----  2   TAX         Transfer Accumulator to X    X=A
@@ -231,27 +246,30 @@ buildInstructionSet()
 
     // Load Register from Memory
     // A9 nn     nz----  2   LDA #nn     Load A with Immediate     A=nn
-    workFunc = [this] { setA(read["nn"]()); };
+    readFunc = read["nn"];
+    workFunc = [this, readFunc] { setA(readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["Immediate"];
     m_instructions[0xA9] = Instruction(0xA9, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // A5 nn     nz----  3   LDA nn      Load A with Zero Page     A=[nn]
     cycleFunc   = [this] { return 3; };
-    workFunc    = [this] { setA(read["[nn]"]()); };
+    readFunc    = read["[nn]"];
+    workFunc    = [this, readFunc] { setA(readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xA5] = Instruction(0xA5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // B5 nn     nz----  4   LDA nn,X    Load A with Zero Page,X   A=[nn+X]
     cycleFunc   = [this] { return 4; };
-    workFunc    = [this] { setA(read["[nn+X]"]()); };
+    readFunc    = read["[nn+X]"];
+    workFunc    = [this, readFunc] { setA(readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0xB5] = Instruction(0xB5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
-    
     // AD nn nn  nz----  4   LDA nnnn    Load A with Absolute      A=[nnnn]
-    workFunc    = [this] { setA(read["[nnnn]"]()); }; 
+    readFunc    = read["[nnnn]"];
+    workFunc    = [this, readFunc] { setA(readFunc()); }; 
     disassemblyFunc = m_disassemblyFunctions["AbsoluteMem"];
     m_instructions[0xAD] = Instruction(0xAD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);
-    
     // BD nn nn  nz----  4*  LDA nnnn,X  Load A with Absolute,X    A=[nnnn+X]
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };
+    readFunc    = read["[nnnn+X]"];
     workFunc    = [this] { setA(read["[nnnn+X]"]()); }; 
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0xBD] = Instruction(0xBD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);
@@ -266,10 +284,11 @@ buildInstructionSet()
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
     m_instructions[0xA1] = Instruction(0xA1, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
     // B1 nn     nz----  5*  LDA (nn),Y  Load A with (Indirect),Y  A=[WORD[nn]+Y]
-    cycleFunc   = [this] { return 5 + crossesPageBoundary(m_memory.wordAtZeroPage(byteOperand()), Y()); };
-    workFunc    = [this] { setA(m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand()) + Y())); };
+    cycleFunc   = [this] { return 5 + crossesPageBoundary(m_addressFuncs["WORD[nn]+Y"]); };
+    workFunc    = [this] { setA(read["[WORD[nn]+Y]"]()); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];
     m_instructions[0xB1] = Instruction(0xB1, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);
+    /*
     // A2 nn     nz----  2   LDX #nn     Load X with Immediate     X=nn
     cycleFunc   = [this] { return 2; }; 
     workFunc    = [this] { setX(byteOperand()); };
@@ -1267,6 +1286,7 @@ buildInstructionSet()
     for (const u8_byte& opcode : {0x02, 0x12, 0x22, 0x32, 0x42, 0x52, 0x62, 0x72, 0x92, 0xB2, 0xD2, 0xF2}) {
         m_instructions[opcode] = Instruction(opcode, 3, "NOP", disassemblyFunc, cycleFunc, workFunc);
     }
+    */
 
     // Add all the 'illegal' opcodes to an easy to query set.
     for (const u8_byte& opcode : 
@@ -1307,6 +1327,7 @@ buildCombinedALUOpcodes()
 
     // Selects addressing mode.
 
+    /*
     std::function<void ()> workFunc;
 
     const u8_byte lowbitsArray[] = { 0x07, 0x17, 0x03, 0x13, 0x0F, 0x1F, 0x1B, 0x00 };
@@ -1426,6 +1447,7 @@ buildCombinedALUOpcodes()
             m_instructions[opcode] = Instruction(opcode, lengths[i], mnemonic, disassemblyFuncs[i], cycleFuncs[i], workFunc);
         }
     }
+*/
 }
 
 

@@ -155,10 +155,13 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         void powerOnImpl();
         void powerOffImpl();
 
-        void builMemoryOperationFuncs();
+        void buildMemoryOperationFuncs();
         void buildInstructionSet();
         void buildDisassemblyFunctions();
         void buildCombinedALUOpcodes();
+
+        enum AddressMode {
+        };
 
         // Registers
         u8_byte           m_A;  // Accumulator
@@ -178,8 +181,8 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
 
         //Helper functions.
         std::map<const char*, std::function<std::string ()>> m_disassemblyFunctions;
-        std::map<const char*, std::function<void(u8_byte)>>  m_writeOperandFuncs;
-        std::map<const char*, std::function<u8_byte(void)>>  m_readOperandFuncs;
+        std::map<AddressMode, std::function<void(u8_byte)>>  m_writeOperandFuncs;
+        std::map<AddressMode, std::function<u8_byte(void)>>  m_readOperandFuncs;
 
         // Has an NMI been requested? (This is likely the screen redraw NMI)
         bool              m_NMI;
