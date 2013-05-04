@@ -123,7 +123,7 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         void    setS(const u8_byte&);
         void    setStatusRegister(const StatusRegister&);
 
-        u8_byte&  byteOperand();
+        u8_byte   byteOperand();
         u16_word  wordOperand();
 
         void    handleRegisterAssignmentFlags(const u8_byte&);
@@ -161,6 +161,15 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         void buildCombinedALUOpcodes();
 
         enum AddressMode {
+            Immediate,
+            ZeroPage,
+            ZeroPageX,
+            ZeroPageY,
+            Absolute,
+            AbsoluteX,
+            AbsoluteY,
+            IndirectX,
+            IndirectY
         };
 
         // Registers
@@ -183,6 +192,7 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         std::map<const char*, std::function<std::string ()>> m_disassemblyFunctions;
         std::map<AddressMode, std::function<void(u8_byte)>>  m_writeOperandFuncs;
         std::map<AddressMode, std::function<u8_byte(void)>>  m_readOperandFuncs;
+        std::map<AddressMode, std::function<u16_word(void)>> m_addressFuncs;
 
         // Has an NMI been requested? (This is likely the screen redraw NMI)
         bool              m_NMI;
