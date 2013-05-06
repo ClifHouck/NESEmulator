@@ -662,40 +662,49 @@ buildInstructionSet()
     disassemblyFunc = m_disassemblyFunctions["Immediate"];
     m_instructions[0x09] = Instruction(0x09, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 05 nn     nz----  3   ORA nn      OR Zero Page       A=A OR [nn]
+    readFunc    = read[ZeroPage];
     cycleFunc   = [this] { return 3; }; 
-    workFunc    = [this] { setA(A() | m_memory.byteAtZeroPage(byteOperand())); };
+    workFunc    = [this, readFunc] { setA(A() | readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x05] = Instruction(0x05, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 15 nn     nz----  4   ORA nn,X    OR Zero Page,X     A=A OR [nn+X]
+    readFunc    = read[ZeroPageX];
     cycleFunc   = [this] { return 4; }; 
-    workFunc    = [this] { setA(A() | m_memory.byteAtZeroPage(byteOperand() + X())); };
+    workFunc    = [this, readFunc] { setA(A() | readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0x15] = Instruction(0x15, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 0D nn nn  nz----  4   ORA nnnn    OR Absolute        A=A OR [nnnn]
-    workFunc    = [this] { setA(A() | m_memory.byteAt(wordOperand())); };
+    readFunc    = read[Absolute];
+    workFunc    = [this, readFunc] { setA(A() | readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x0D] = Instruction(0x0D, 3, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 1D nn nn  nz----  4*  ORA nnnn,X  OR Absolute,X      A=A OR [nnnn+X]
+    readFunc    = read[AbsoluteX];
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); }; 
-    workFunc    = [this] { setA(A() | m_memory.byteAt(wordOperand() + X())); };
+    workFunc    = [this, readFunc] { setA(A() | readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0x1D] = Instruction(0x1D, 3, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 19 nn nn  nz----  4*  ORA nnnn,Y  OR Absolute,Y      A=A OR [nnnn+Y]
+    readFunc    = read[AbsoluteY];
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); }; 
-    workFunc    = [this] { setA(A() | m_memory.byteAt(wordOperand() + Y())); };
+    workFunc    = [this, readFunc] { setA(A() | readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];
     m_instructions[0x19] = Instruction(0x19, 3, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 01 nn     nz----  6   ORA (nn,X)  OR (Indirect,X)    A=A OR [[nn+X]]
+    readFunc    = read[IndirectX];
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setA(A() | m_memory.byteAt(m_memory.wordAt(byteOperand() + X()))); };
+    workFunc    = [this, readFunc] { setA(A() | readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
     m_instructions[0x01] = Instruction(0x01, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
     // 11 nn     nz----  5*  ORA (nn),Y  OR (Indirect),Y    A=A OR [[nn]+Y]
-    cycleFunc   = [this] { return 5 + crossesPageBoundary(m_memory.wordAt(byteOperand()), Y()); }; 
-    workFunc    = [this] { setA(A() | m_memory.byteAt(m_memory.wordAt(byteOperand()) + Y())); };
+    readFunc    = read[IndirectY];
+    addressFunc = m_addressFuncs[IndirectY];
+    cycleFunc   = [this, addressFunc] { return 5 + crossesPageBoundary(addressFunc()) };
+    workFunc    = [this, readFunc] { setA(A() | readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];
     m_instructions[0x11] = Instruction(0x11, 2, "ORA", disassemblyFunc, cycleFunc, workFunc);
 
+    /*
     // Compare
     // * Add one cycle if indexing crosses a page boundary.
     //FIXME: Not sure what to make of this note... be careful!
