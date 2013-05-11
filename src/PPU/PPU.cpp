@@ -12,15 +12,15 @@ PPU(Cpu65XX::Memory &cpuMemory,
     m_clock(clock),
     // Register information derived from: 
     // http://wiki.nesdev.com/w/index.php/PPU_power_up_state
-    m_control       (&cpuMemory.byteAt(CONTROL_ADDRESS)),
-    m_mask          (&cpuMemory.byteAt(MASK_ADDRESS)), 
-    m_status        (&cpuMemory.byteAt(STATUS_ADDRESS), m_isFirstWrite),
-    m_oamAddress    (&cpuMemory.byteAt(OAM_ADDRESS_ADDRESS)),
-    m_oamData       (&cpuMemory.byteAt(OAM_DATA_ADDRESS), m_spriteRAM, m_oamAddress),
-    m_oamDMA        (&cpuMemory.byteAt(OAM_DMA_ADDRESS)),
-    m_scroll        (&cpuMemory.byteAt(SCROLL_ADDRESS), m_isFirstWrite),
-    m_address       (&cpuMemory.byteAt(SCROLL_ADDRESS_ADDRESS), m_isFirstWrite, m_control),
-    m_data          (&cpuMemory.byteAt(SCROLL_DATA_ADDRESS), m_address, cpuMemory),
+    m_control       (),
+    m_mask          (), 
+    m_status        (m_isFirstWrite),
+    m_oamAddress    (),
+    m_oamData       (m_spriteRAM, m_oamAddress),
+    m_oamDMA        (),
+    m_scroll        (m_isFirstWrite),
+    m_address       (m_isFirstWrite, m_control),
+    m_data          (m_address, cpuMemory),
     m_bitmap        (),
     m_spriteRAM     ()
 {
@@ -155,8 +155,56 @@ powerOffImpl()
     });
 }
 
+Register*
+RegisterBlock::
+getRegister(RegisterBlock::address_t)
+{
+    Register *reg = nullptr;
+    switch (address) {
+        case CONTROL_ADDRESS:
+            reg = &m_ppu.m_control;
+            break;
+        case MASK_ADDRESS:
+            reg = &m_ppu.m_mask;
+            break;
+        case STATUS_ADDRESS:
+            reg = &m_ppu.m_status;
+            break;
+        case OAM_ADDRESS_ADDRESS:
+            reg = &m_ppu.m_oamAddress;
+            break;
+        case OAM_DATA_ADDRESS:
+            reg = &m_ppu.m_oamData;
+            break;
+        case OAM_DMA_ADDRESS:
+            reg = &m_ppu.m_oamData;
+            break;
+        case SCROLL_ADDRESS:
+            reg = &m_ppu.m_scroll;
+            break;
+        case SCROLL_ADDRESS_ADDRESS:
+            reg = &m_ppu.m_address;
+            break;
+        case SCROLL_DATA_ADDRESS:
+            reg = &m_ppu.m_data;
+            break;
+    }
+    assert(reg != nullptr);
+    return reg;
+}
+
 RegisterBlock::data_t
 RegisterBlock::
 getData(address_t address) 
 {
+    Register *reg = getRegister(address);
+    return reg->read();
+}
+
+void
+RegisterBlock::
+setData(address_t address, data_t data)
+{
+    Register *reg = getRegister(address);
+    reg->write(data);
 }

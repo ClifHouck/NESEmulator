@@ -5,6 +5,7 @@
 #include "utility/Register.hpp"
 #include "utility/PoweredDevice.hpp"
 #include "utility/Clock.hpp"
+#include "utility/Memory.hpp"
 #include "CPU/Cpu65XX.hpp"
 
 #include <vector>
@@ -46,6 +47,8 @@ public:
         virtual data_t getData(address_t address);
         virtual void   setData(address_t address, data_t data);
 
+        getRegister(address_t address);
+
     private:
         PPU &m_ppu;
     };
@@ -70,8 +73,8 @@ private:
     class PPUController : public ReadOnlyRegister
     {
     public:
-        PPUController(u8_byte *backing) :
-            ReadOnlyRegister(backing, 0x00, 0x00, 0x00, 0x00)
+        PPUController() :
+            ReadOnlyRegister(0x00, 0x00, 0x00, 0x00)
         {}
         ~PPUController() {}
 
@@ -111,8 +114,8 @@ private:
     class PPUMask : public Register 
     {
     public:
-        PPUMask(u8_byte *backing) :
-            Register(backing, 0x00, 0x00, 0x00, 0x00)
+        PPUMask() :
+            Register(0x00, 0x00, 0x00, 0x00)
         {}
         ~PPUMask() {}
 
@@ -137,9 +140,8 @@ private:
 
     class PPUStatus : public Register {
     public:
-        PPUStatus(u8_byte *backing,
-                  bool    &isFirstWrite) :
-            Register(backing, 0xA0, 0x00, 0x00, 0x80),
+        PPUStatus(bool &isFirstWrite) :
+            Register(0xA0, 0x00, 0x00, 0x80),
             m_isFirstWrite (isFirstWrite)
         {}
         ~PPUStatus() {}
@@ -166,8 +168,8 @@ private:
     class OAMAddress : public WriteOnlyRegister
     {
     public:
-        OAMAddress(u8_byte *backing) :
-            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF)
+        OAMAddress() :
+            WriteOnlyRegister(0x00, 0x00, 0x00, 0xFF)
         {}
         ~OAMAddress() {}
 
@@ -179,10 +181,9 @@ private:
     class OAMData : public Register
     {
     public:
-        OAMData(u8_byte *backing,
-                u8_byte *spriteRAM,
+        OAMData(u8_byte *spriteRAM,
                 OAMAddress &address) :
-            Register(backing, 0x00, 0x00, 0x00, 0x00),
+            Register(0x00, 0x00, 0x00, 0x00),
             m_spriteRAM (spriteRAM),
             m_address(address)
         {}
@@ -209,8 +210,8 @@ private:
     class OAMDMA : public WriteOnlyRegister 
     {
     public:
-        OAMDMA(u8_byte *backing) :
-            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0x00)
+        OAMDMA() :
+            WriteOnlyRegister(0x00, 0x00, 0x00, 0x00)
         {}
         ~OAMDMA() {}
 
@@ -220,9 +221,8 @@ private:
     class VRAMScroll : public WriteOnlyRegister
     {
     public:
-        VRAMScroll(u8_byte *backing,
-                   bool &isFirstWrite) :
-            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF),
+        VRAMScroll(bool &isFirstWrite) :
+            WriteOnlyRegister(0x00, 0x00, 0x00, 0xFF),
             m_isFirstWrite (isFirstWrite)
         {}
         ~VRAMScroll() {}
@@ -255,10 +255,9 @@ private:
     class VRAMAddress : public WriteOnlyRegister
     {
     public:
-        VRAMAddress(u8_byte *backing,
-                    bool &isFirstWrite,
+        VRAMAddress(bool &isFirstWrite,
                     PPUController &ppuController) :
-            WriteOnlyRegister(backing, 0x00, 0x00, 0x00, 0xFF),
+            WriteOnlyRegister(0x00, 0x00, 0x00, 0xFF),
             m_isFirstWrite (isFirstWrite),
             m_ppuController (ppuController),
             m_highByte (0x00),
@@ -295,9 +294,8 @@ private:
     class VRAMData : public Register 
     {
     public:
-        VRAMData(u8_byte *backing, 
-                 VRAMAddress &vramAddress,
-                 Cpu65XX::Memory& cpuMemory) :
+        VRAMData(VRAMAddress &vramAddress,
+                 Cpu65XX::MainMemory& cpuMemory) :
             Register(backing, 0x00, 0x00, 0x00, 0x00),
             m_vramAddress (vramAddress),
             m_cpuMemory (cpuMemory)
