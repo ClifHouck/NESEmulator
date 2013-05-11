@@ -14,7 +14,9 @@ void
 PoweredDevice::
 reset() 
 {
-    m_poweredDeviceOwner->resetImpl();
+    if (m_powerState == ON) {
+        m_poweredDeviceOwner->resetImpl();
+    }
 }
 
 void 
@@ -35,7 +37,7 @@ powerOff()
 
 PoweredDevice::State
 PoweredDevice::
-state() const
+powerState() const
 {
     return m_powerState;
 }

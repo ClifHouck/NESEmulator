@@ -13,7 +13,7 @@ public:
     void powerOn();     
     void powerOff();   
 
-    State state() const;
+    State powerState() const;
 
 protected:
     PoweredDevice(PoweredDevice *owner, State state = OFF);
