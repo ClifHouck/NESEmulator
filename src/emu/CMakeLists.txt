@@ -6,6 +6,7 @@ find_package(OpenGL REQUIRED)
 add_executable(nesemu 
         main.cpp 
         NesApp.cpp
+        NES.cpp
 )
 
 target_link_libraries(nesemu 

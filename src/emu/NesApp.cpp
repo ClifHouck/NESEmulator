@@ -11,9 +11,7 @@
 NESApp::
 NESApp() :
     m_running (true),
-    m_display (),
-    m_cpu     (),
-    m_ppu     (m_cpu.memory())
+    m_display ()
 {
 }
 

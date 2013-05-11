@@ -3,8 +3,7 @@
 
 #include <SDL.h>
 
-#include "CPU/Cpu65XX.hpp"
-#include "PPU/PPU.hpp"
+#include "NES.hpp"
 
 class NESApp {
     public:
@@ -19,8 +18,7 @@ class NESApp {
     private:
         bool            m_running;
         SDL_Surface*    m_display;
-        Cpu65XX         m_cpu;
-        PPU             m_ppu;
+        NES             m_nes;
 };
 
 #endif

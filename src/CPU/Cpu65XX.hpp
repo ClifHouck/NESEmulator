@@ -126,6 +126,8 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         u8_byte   byteOperand();
         u16_word  wordOperand();
 
+        u16_word wordAt(const Memory::address_t address, bool indirect = false);
+
         void    handleRegisterAssignmentFlags(const u8_byte&);
 
         u8_byte additionWithCarry(const u8_byte&, const u8_byte&);
@@ -192,7 +194,7 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         std::map<const char*, std::function<std::string ()>> m_disassemblyFunctions;
         std::map<AddressMode, std::function<void(u8_byte)>>  m_writeOperandFuncs;
         std::map<AddressMode, std::function<u8_byte(void)>>  m_readOperandFuncs;
-        std::map<AddressMode, std::function<u16_word(void)>> m_addressFuncs;
+        std::map<AddressMode, std::function<bool(void)>>     m_boundaryFuncs;
 
         // Has an NMI been requested? (This is likely the screen redraw NMI)
         bool              m_NMI;
