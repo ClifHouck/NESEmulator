@@ -21,16 +21,15 @@ class Clock
 public:
     Clock(unsigned int hertz);
 
-    void registerDevice(ClockedDevice *device);
-
-    void tick();
-
+    void         tick();
     unsigned int count() const;
 
+    void registerDevice(ClockedDevice *device);
+
 private:
-    std::vector<ClockedDevice*> m_devices;
     unsigned int                m_count;
     unsigned int                m_hertz;
+    std::vector<ClockedDevice*> m_devices;
 };
 
 #endif //CLOCK_H
