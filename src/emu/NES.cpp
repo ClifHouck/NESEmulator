@@ -4,8 +4,9 @@ NES::
 NES() :
     PoweredDevice(this),
     m_clock (clockHertz),
-    m_cpu (),
-    m_ppu (m_cpu.memory(), m_clock)
+    m_cpu (m_memory),
+    m_ppu (m_memory, m_clock),
+    m_memory (m_ppu.registerBlock())
 {
     m_clock.registerDevice(&m_cpu);
     m_clock.registerDevice(&m_ppu);
@@ -42,23 +43,30 @@ powerOffImpl()
     m_ppu.powerOff();
 }
 
-MainMemory::data_t
-MainMemory::
+NES::MainMemory::
+MainMemory(Memory &ppuRegisters) :
+    Memory(MAIN_MEMORY_SIZE),
+    m_ppuRegisters (ppuRegisters)
+{
+}
+
+NES::MainMemory::data_t
+NES::MainMemory::
 getData(address_t address) 
 {
     if (address >= (WORK_RAM_END + 1) &&
-        adresss <  PPU_REGISTERS_BEGIN) {
+        address <  PPU_REGISTERS_BEGIN) {
         return getData(address % 0x0800);
     }
     else if (address >= PPU_REGISTERS_BEGIN && 
              address <  APU_REGISTERS_BEGIN) {
-        return m_ppuMemory.getData(address);
+        return m_ppuRegisters.read(address);
     }
     return Memory::getData(address);
 }
 
 void
-MainMemory::
+NES::MainMemory::
 setData(address_t address, data_t data) 
 {
     if (address >= (WORK_RAM_END + 1) &&
@@ -67,7 +75,7 @@ setData(address_t address, data_t data)
     }
     else if (address >= PPU_REGISTERS_BEGIN &&
              address <  APU_REGISTERS_BEGIN) {
-        m_ppuMemory.setData(address, data);
+        m_ppuRegisters.write(address, data);
     }
     return Memory::setData(address, data);
 }

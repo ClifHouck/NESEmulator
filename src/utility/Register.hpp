@@ -8,23 +8,36 @@
 class Register : public PoweredDevice
 {
 public:
-    Register(u8_byte powerOnData    = 0x00,
-             u8_byte resetData      = 0x00,
-             u8_byte readOnlyMask   = 0x00,
-             u8_byte resetMask      = 0x00);
+    struct StateData
+    {
+        StateData(u8_byte powerOnData,
+                  u8_byte resetData,
+                  u8_byte readOnlyMask,
+                  u8_byte resetMask) :
+            m_powerOnData (powerOnData),
+            m_resetData (resetData),
+            m_readOnlyMask (readOnlyMask),
+            m_resetMask (resetMask) 
+        {}
+
+        u8_byte m_powerOnData;
+        u8_byte m_resetData;
+        u8_byte m_readOnlyMask;
+        u8_byte m_resetMask;
+    };
+
+    Register(StateData data);
 
     // Constructor for Register to use non-local backing.
     Register(u8_byte *backing,
-             u8_byte powerOnData    = 0x00,
-             u8_byte resetData      = 0x00,
-             u8_byte readOnlyMask   = 0x00,
-             u8_byte resetMask      = 0x00);
+             StateData data);
 
     // Functions for checked reads and writes.
     virtual u8_byte read();
     virtual void    write(u8_byte data, u8_byte mask = 0xFF);
 
 protected:
+
     // Ignores rules like read-only masks and returns the raw data found in the backing store.
     // Use with caution.
     u8_byte rawRead() const;
@@ -47,11 +60,7 @@ private:
 class ReadOnlyRegister : public Register
 {
 public:
-    ReadOnlyRegister(u8_byte *backing,
-                     u8_byte powerOnData  = 0x00,
-                     u8_byte resetData    = 0x00,
-                     u8_byte readOnlyMask = 0xFF, 
-                     u8_byte resetMjsk    = 0x00);
+    ReadOnlyRegister(StateData data);
 
 protected:
     virtual void write(u8_byte data, u8_byte mask = 0xFF);
@@ -60,11 +69,7 @@ protected:
 class WriteOnlyRegister : public Register
 {
 public:
-    WriteOnlyRegister(u8_byte *backing,
-                      u8_byte powerOnData  = 0x00,
-                      u8_byte resetData    = 0x00,
-                      u8_byte readOnlyMask = 0x00, 
-                      u8_byte resetMask    = 0x00);
+    WriteOnlyRegister(StateData data);
 
 protected:
     virtual u8_byte read();

@@ -20,7 +20,9 @@ public:
     class MainMemory : public Memory 
     {
     public:
-        MainMemory(Memory &ppuMemory);
+        MainMemory(Memory &ppuRegisters);
+
+        static const Memory::size_t MAIN_MEMORY_SIZE    = 2 * 1024;
 
         static const address_t WORK_RAM_BEGIN           = 0x0000;
         static const address_t WORK_RAM_END             = 0x07FF;
@@ -44,7 +46,7 @@ public:
         virtual void   setData(address_t address, data_t data);
 
     private:
-        Memory &m_ppuMemory;
+        Memory &m_ppuRegisters;
         //Memory &m_apuMemory;
     };
 
@@ -54,6 +56,7 @@ protected:
     virtual void powerOffImpl();
 
 private:
+    MainMemory m_memory;
     Cpu65XX m_cpu;
     PPU     m_ppu;
     Clock   m_clock;

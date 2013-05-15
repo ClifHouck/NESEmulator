@@ -16,6 +16,8 @@ public:
     u8_byte     read(const address_t address);
     void        write(const address_t address, const data_t data);
 
+    void        rawWrite(const address_t address, const data_t data);
+
     template <typename ReturnType>  
     ReturnType rawRead(const address_t address);
 

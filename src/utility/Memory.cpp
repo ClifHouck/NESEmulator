@@ -50,3 +50,10 @@ setData(address_t address, data_t data)
     assert(address < m_size);
     m_backing[address] = data;
 }
+
+void        
+Memory::
+rawWrite(const address_t address, const data_t data)
+{
+    setData(address, data);
+}

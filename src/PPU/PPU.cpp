@@ -3,7 +3,7 @@
 #include <algorithm>
 
 PPU::
-PPU(Cpu65XX::Memory &cpuMemory, 
+PPU(Memory &cpuMemory, 
     Clock &clock) :
     PoweredDevice(this),
     ClockedDevice(clockDivisor),
@@ -22,10 +22,11 @@ PPU(Cpu65XX::Memory &cpuMemory,
     m_address       (m_isFirstWrite, m_control),
     m_data          (m_address, cpuMemory),
     m_bitmap        (),
-    m_spriteRAM     ()
+    m_spriteRAM     (spriteRamSize),
+    m_memory        (memorySize),
+    m_registerBlock (*this)
 {
     std::fill(m_bitmap, m_bitmap + bitmapSize, 0.0);
-    std::fill(m_spriteRAM, m_spriteRAM + spriteRamSize, 0x00);
 
     for (Register* reg : 
             { (Register*)&m_control, 
@@ -57,6 +58,14 @@ tick()
     m_currentCycle    =  m_clock.count() % ticksPerScanline;
 }
 
+PPU::RegisterBlock&
+PPU::
+registerBlock()
+{
+    return m_registerBlock;
+}
+
+#if 0
 PPU::Memory::
 Memory() 
 {
@@ -90,6 +99,7 @@ byteAt(const u16_word& address)
 
     return m_memory[trueAddress];
 }
+#endif
 
 // Renders current pixel determined by the clock.
 void 
@@ -156,8 +166,8 @@ powerOffImpl()
 }
 
 Register*
-RegisterBlock::
-getRegister(RegisterBlock::address_t)
+PPU::RegisterBlock::
+getRegister(RegisterBlock::address_t address)
 {
     Register *reg = nullptr;
     switch (address) {
@@ -193,8 +203,8 @@ getRegister(RegisterBlock::address_t)
     return reg;
 }
 
-RegisterBlock::data_t
-RegisterBlock::
+PPU::RegisterBlock::data_t
+PPU::RegisterBlock::
 getData(address_t address) 
 {
     Register *reg = getRegister(address);
@@ -202,7 +212,7 @@ getData(address_t address)
 }
 
 void
-RegisterBlock::
+PPU::RegisterBlock::
 setData(address_t address, data_t data)
 {
     Register *reg = getRegister(address);

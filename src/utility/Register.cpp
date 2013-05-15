@@ -1,34 +1,28 @@
 #include "Register.hpp"
 
 Register::
-Register(u8_byte powerOnData,
-        u8_byte resetData,
-        u8_byte readOnlyMask,   
-        u8_byte resetMask) :
+Register(StateData data) :     
     PoweredDevice(this),
     m_data (m_localBacking),
-    m_resetData (resetData),
-    m_readOnlyMask (readOnlyMask),
-    m_resetMask (resetMask),
-    m_powerOnData (powerOnData),
-    m_localBacking (powerOnData)
+    m_resetData (data.m_resetData),
+    m_readOnlyMask (data.m_readOnlyMask),
+    m_resetMask (data.m_resetMask),
+    m_powerOnData (data.m_powerOnData),
+    m_localBacking (data.m_powerOnData)
 {
 }
 
 Register::
 Register(u8_byte *backing,
-        u8_byte powerOnData,
-        u8_byte resetData,
-        u8_byte readOnlyMask,   
-        u8_byte resetMask) :
+         StateData data) :
     PoweredDevice(this),
     m_data (*backing),
-    m_resetData (resetData),
-    m_readOnlyMask (readOnlyMask),
-    m_resetMask (resetMask),
-    m_powerOnData (powerOnData)
+    m_resetData (data.m_resetData),
+    m_readOnlyMask (data.m_readOnlyMask),
+    m_resetMask (data.m_resetMask),
+    m_powerOnData (data.m_powerOnData)
 {
-    m_data = powerOnData;
+    m_data = data.m_powerOnData;
 }
 
 u8_byte 
@@ -87,12 +81,8 @@ powerOffImpl()
 }
 
 ReadOnlyRegister::
-ReadOnlyRegister(u8_byte *backing,
-                 u8_byte powerOnData,  
-                 u8_byte resetData,   
-                 u8_byte readOnlyMask,
-                 u8_byte resetMask) :
-    Register(backing, powerOnData, resetData, readOnlyMask, resetMask)
+ReadOnlyRegister(StateData data) :
+    Register(data)
 {
 }
 
@@ -105,12 +95,8 @@ write(u8_byte data, u8_byte mask)
 }
 
 WriteOnlyRegister::
-WriteOnlyRegister(u8_byte *backing,
-                  u8_byte powerOnData,
-                  u8_byte resetData,
-                  u8_byte readOnlyMask,
-                  u8_byte resetMask) :
-    Register(backing, powerOnData, resetData, readOnlyMask, resetMask)
+WriteOnlyRegister(StateData data) :
+    Register(data)
 {}
 
 u8_byte 

@@ -207,7 +207,185 @@ buildMemoryOperationFuncs()
         m_memory.write(m_memory.rawRead<u16_word>(zeroPage(byteOperand()) + Y()), data); 
     };
 
-    m_boundaryFuncs[IndirectX] = [this]() -> bool {        return crossesPageBoundary(m_memory.rawRead<u16_word>(byteOperand() + X()));    };    m_boundaryFuncs[IndirectY] = [this]() -> bool {        return crossesPageBroundary(m_memory.rawRead<u16_word>(byteOperand()), Y());    };}voidCpu65XX::buildInstructionSet() {    // Register to Register Transfer    // A8        nz----  2   TAY         Transfer Accumulator to Y    Y=A    std::function<unsigned int()>   cycleFunc           = [this] { return 2; };    std::function<void ()>          workFunc            = [this] { setY(A()); };    std::function<std::string ()>   disassemblyFunc     = m_disassemblyFunctions["None"];    auto &read          = m_readOperandFuncs;    auto &write         = m_writeOperandFuncs;     auto readFunc       = read[ZeroPage];    auto writeFunc      = write[ZeroPage];    auto boundaryFunc   = m_boundaryFuncs[IndirectX];    m_instructions[0xA8] = Instruction(0xA8, 1, "TAY", disassemblyFunc, cycleFunc, workFunc);    // AA        nz----  2   TAX         Transfer Accumulator to X    X=A    workFunc = [this] { setX(A()); };    m_instructions[0xAA] = Instruction(0xAA, 1, "TAX", disassemblyFunc, cycleFunc, workFunc);    // BA        nz----  2   TSX         Transfer Stack pointer to X  X=S    workFunc = [this] { setX(S()); };    m_instructions[0xBA] = Instruction(0xBA, 1, "TSX", disassemblyFunc, cycleFunc, workFunc);    // 98        nz----  2   TYA         Transfer Y to Accumulator    A=Y    workFunc = [this] { setA(Y()); };    m_instructions[0x98] = Instruction(0x98, 1, "TYA", disassemblyFunc, cycleFunc, workFunc);    // 8A        nz----  2   TXA         Transfer X to Accumulator    A=X    workFunc = [this] { setA(X()); };    m_instructions[0x8A] = Instruction(0x8A, 1, "TXA", disassemblyFunc, cycleFunc, workFunc);    // 9A        ------  2   TXS         Transfer X to Stack pointer  S=X      workFunc = [this] { setS(X()); };    m_instructions[0x9A] = Instruction(0x9A, 1, "TXS", disassemblyFunc, cycleFunc, workFunc);    // Load Register from Memory    // A9 nn     nz----  2   LDA #nn     Load A with Immediate     A=nn    readFunc = read[Immediate];    workFunc = [this, readFunc] { setA(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["Immediate"];    m_instructions[0xA9] = Instruction(0xA9, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    // A5 nn     nz----  3   LDA nn      Load A with Zero Page     A=[nn]    cycleFunc   = [this] { return 3; };    readFunc    = read[ZeroPage];    workFunc    = [this, readFunc] { setA(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    m_instructions[0xA5] = Instruction(0xA5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    // B5 nn     nz----  4   LDA nn,X    Load A with Zero Page,X   A=[nn+X]    cycleFunc   = [this] { return 4; };    readFunc    = read[ZeroPageX];    workFunc    = [this, readFunc] { setA(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];    m_instructions[0xB5] = Instruction(0xB5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    // AD nn nn  nz----  4   LDA nnnn    Load A with Absolute      A=[nnnn]    readFunc    = read[Absolute];    workFunc    = [this, readFunc] { setA(readFunc()); };     disassemblyFunc = m_disassemblyFunctions["AbsoluteMem"];    m_instructions[0xAD] = Instruction(0xAD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);    // BD nn nn  nz----  4*  LDA nnnn,X  Load A with Absolute,X    A=[nnnn+X]    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };    readFunc    = read[AbsoluteX];    workFunc    = [this, readFunc] { setA(readFunc()); };     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];    m_instructions[0xBD] = Instruction(0xBD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);    // B9 nn nn  nz----  4*  LDA nnnn,Y  Load A with Absolute,Y    A=[nnnn+Y]    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };    readFunc    = read[AbsoluteY];    workFunc    = [this, readFunc] { setA(readFunc()); };     disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];    m_instructions[0xB9] = Instruction(0xB9, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);    // A1 nn     nz----  6   LDA (nn,X)  Load A with (Indirect,X)  A=[WORD[nn+X]]    cycleFunc   = [this] { return 6; };    readFunc    = read[IndirectX];    workFunc    = [this, readFunc] { setA(readFunc()); };     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];    m_instructions[0xA1] = Instruction(0xA1, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    // B1 nn     nz----  5*  LDA (nn),Y  Load A with (Indirect),Y  A=[WORD[nn]+Y]    boundaryFunc = m_boundaryFuncs[IndirectY];    cycleFunc   = [this, boundaryFunc] { return 5 + boundaryFunc(); };    readFunc    = read[IndirectY];    workFunc    = [this, readFunc] { setA(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];    m_instructions[0xB1] = Instruction(0xB1, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    // A2 nn     nz----  2   LDX #nn     Load X with Immediate     X=nn    cycleFunc   = [this] { return 2; };     workFunc    = [this] { setX(byteOperand()); };    disassemblyFunc = m_disassemblyFunctions["Immediate"];    m_instructions[0xA2] = Instruction(0xA2, 2, "LDX", disassemblyFunc, cycleFunc, workFunc);    // A6 nn     nz----  3   LDX nn      Load X with Zero Page     X=[nn]    cycleFunc   = [this] { return 3; };     readFunc    = read[ZeroPage];    workFunc    = [this, readFunc] { setX(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    m_instructions[0xA6] = Instruction(0xA6, 2, "LDX", disassemblyFunc, cycleFunc, workFunc);    // B6 nn     nz----  4   LDX nn,Y    Load X with Zero Page,Y   X=[nn+Y]    cycleFunc   = [this] { return 4; };     readFunc    = read[ZeroPageY];    workFunc    = [this, readFunc] { setX(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage,Y"];    m_instructions[0xB6] = Instruction(0xB6, 2, "LDX", disassemblyFunc, cycleFunc, workFunc);    // AE nn nn  nz----  4   LDX nnnn    Load X with Absolute      X=[nnnn]    readFunc    = read[Absolute];    workFunc    = [this, readFunc] { setX(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["AbsoluteMem"];    m_instructions[0xAE] = Instruction(0xAE, 3, "LDX", disassemblyFunc, cycleFunc, workFunc);    // BE nn nn  nz----  4*  LDX nnnn,Y  Load X with Absolute,Y    X=[nnnn+Y]    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };     readFunc    = read[AbsoluteY];    workFunc    = [this, readFunc] { setX(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];    m_instructions[0xBE] = Instruction(0xBE, 3, "LDX", disassemblyFunc, cycleFunc, workFunc);    // A0 nn     nz----  2   LDY #nn     Load Y with Immediate     Y=nn    cycleFunc   = [this] { return 2; };     workFunc    = [this] { setY(byteOperand()); };    disassemblyFunc = m_disassemblyFunctions["Immediate"];    m_instructions[0xA0] = Instruction(0xA0, 2, "LDY", disassemblyFunc, cycleFunc, workFunc);    // A4 nn     nz----  3   LDY nn      Load Y with Zero Page     Y=[nn]    cycleFunc   = [this] { return 3; };     readFunc    = read[ZeroPage];    workFunc    = [this, readFunc] { setY(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    m_instructions[0xA4] = Instruction(0xA4, 2, "LDY", disassemblyFunc, cycleFunc, workFunc);    // B4 nn     nz----  4   LDY nn,X    Load Y with Zero Page,X   Y=[nn+X]    cycleFunc   = [this] { return 4; };     readFunc    = read[ZeroPageX];    workFunc    = [this, readFunc] { setY(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];    m_instructions[0xB4] = Instruction(0xB4, 2, "LDY", disassemblyFunc, cycleFunc, workFunc);    // AC nn nn  nz----  4   LDY nnnn    Load Y with Absolute      Y=[nnnn]    readFunc    = read[Absolute];    workFunc    = [this, readFunc] { setY(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];    m_instructions[0xAC] = Instruction(0xAC, 3, "LDY", disassemblyFunc, cycleFunc, workFunc);    // BC nn nn  nz----  4*  LDY nnnn,X  Load Y with Absolute,X    Y=[nnnn+X]    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };    readFunc    = read[AbsoluteX];    workFunc    = [this, readFunc] { setY(readFunc()); };    disassemblyFunc = m_disassemblyFunctions["Absolute,X"];    m_instructions[0xBC] = Instruction(0xBC, 3, "LDY", disassemblyFunc, cycleFunc, workFunc);            // Store Register in Memory    // 85 nn     ------  3   STA nn      Store A in Zero Page     [nn]=A    cycleFunc   = [this] { return 3; };     writeFunc   = write[ZeroPage];    workFunc    = [this, writeFunc] { writeFunc(A()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    m_instructions[0x85] = Instruction(0x85, 2, "STA", disassemblyFunc, cycleFunc, workFunc);    // 95 nn     ------  4   STA nn,X    Store A in Zero Page,X   [nn+X]=A    cycleFunc   = [this] { return 4; };     writeFunc   = write[ZeroPageX];    workFunc    = [this, writeFunc] { writeFunc(A()); };    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];    m_instructions[0x95] = Instruction(0x95, 2, "STA", disassemblyFunc, cycleFunc, workFunc);    // 8D nn nn  ------  4   STA nnnn    Store A in Absolute      [nnnn]=A    writeFunc   = write[Absolute];    workFunc    = [this, writeFunc] { writeFunc(A()); };    disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];    m_instructions[0x8D] = Instruction(0x8D, 3, "STA", disassemblyFunc, cycleFunc, workFunc);    // 9D nn nn  ------  5   STA nnnn,X  Store A in Absolute,X    [nnnn+X]=A    cycleFunc   = [this] { return 5; };     writeFunc   = write[AbsoluteX];    workFunc    = [this, writeFunc] { writeFunc(A()); };    disassemblyFunc = m_disassemblyFunctions["Absolute,X"];    m_instructions[0x9D] = Instruction(0x9D, 3, "STA", disassemblyFunc, cycleFunc, workFunc);    // 99 nn nn  ------  5   STA nnnn,Y  Store A in Absolute,Y    [nnnn+Y]=A    writeFunc   = write[AbsoluteY];    workFunc    = [this, writeFunc] { writeFunc(A()); };    disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];    m_instructions[0x99] = Instruction(0x99, 3, "STA", disassemblyFunc, cycleFunc, workFunc);    // 81 nn     ------  6   STA (nn,X)  Store A in (Indirect,X)  [[nn+x]]=A    cycleFunc   = [this] { return 6; };     writeFunc   = write[IndirectX];    workFunc    = [this, writeFunc] { writeFunc(A()); };    disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];    m_instructions[0x81] = Instruction(0x81, 2, "STA", disassemblyFunc, cycleFunc, workFunc);    // 91 nn     ------  6   STA (nn),Y  Store A in (Indirect),Y  [[nn]+y]=A
+    m_boundaryFuncs[IndirectX] = [this]() -> bool {        
+        return crossesPageBoundary(m_memory.rawRead<u16_word>(byteOperand() + X()));    
+    };    
+    m_boundaryFuncs[IndirectY] = [this]() -> bool {        
+        return crossesPageBoundary(m_memory.rawRead<u16_word>(byteOperand()), Y());    
+    };
+}
+
+void
+Cpu65XX::
+buildInstructionSet() {    
+    // Register to Register Transfer    
+    // A8        nz----  2   TAY         Transfer Accumulator to Y    Y=A    
+    std::function<unsigned int()>   cycleFunc           = [this] { return 2; };    
+    std::function<void ()>          workFunc            = [this] { setY(A()); };
+    std::function<std::string ()>   disassemblyFunc     = m_disassemblyFunctions["None"];
+    auto &read          = m_readOperandFuncs;    
+    auto &write         = m_writeOperandFuncs;     
+    auto readFunc       = read[ZeroPage];    
+    auto writeFunc      = write[ZeroPage];    
+    auto boundaryFunc   = m_boundaryFuncs[IndirectX];    
+    m_instructions[0xA8] = Instruction(0xA8, 1, "TAY", disassemblyFunc, cycleFunc, workFunc);    
+    // AA        nz----  2   TAX         Transfer Accumulator to X    X=A    
+    workFunc = [this] { setX(A()); };    
+    m_instructions[0xAA] = Instruction(0xAA, 1, "TAX", disassemblyFunc, cycleFunc, workFunc);    
+    // BA        nz----  2   TSX         Transfer Stack pointer to X  X=S    
+    workFunc = [this] { setX(S()); };    
+    m_instructions[0xBA] = Instruction(0xBA, 1, "TSX", disassemblyFunc, cycleFunc, workFunc);    
+    // 98        nz----  2   TYA         Transfer Y to Accumulator    A=Y    
+    workFunc = [this] { setA(Y()); };    
+    m_instructions[0x98] = Instruction(0x98, 1, "TYA", disassemblyFunc, cycleFunc, workFunc);    
+    // 8A        nz----  2   TXA         Transfer X to Accumulator    A=X    
+    workFunc = [this] { setA(X()); };    
+    m_instructions[0x8A] = Instruction(0x8A, 1, "TXA", disassemblyFunc, cycleFunc, workFunc);    
+    // 9A        ------  2   TXS         Transfer X to Stack pointer  S=X      
+    workFunc = [this] { setS(X()); };    
+    m_instructions[0x9A] = Instruction(0x9A, 1, "TXS", disassemblyFunc, cycleFunc, workFunc);    
+
+    // Load Register from Memory    
+    // A9 nn     nz----  2   LDA #nn     Load A with Immediate     A=nn    
+    readFunc = read[Immediate];    
+    workFunc = [this, readFunc] { setA(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["Immediate"];    
+    m_instructions[0xA9] = Instruction(0xA9, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // A5 nn     nz----  3   LDA nn      Load A with Zero Page     A=[nn]    
+    cycleFunc   = [this] { return 3; };    
+    readFunc    = read[ZeroPage];    
+    workFunc    = [this, readFunc] { setA(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    
+    m_instructions[0xA5] = Instruction(0xA5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // B5 nn     nz----  4   LDA nn,X    Load A with Zero Page,X   A=[nn+X]    
+    cycleFunc   = [this] { return 4; };    
+    readFunc    = read[ZeroPageX];    
+    workFunc    = [this, readFunc] { setA(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];    
+    m_instructions[0xB5] = Instruction(0xB5, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // AD nn nn  nz----  4   LDA nnnn    Load A with Absolute      A=[nnnn]    
+    readFunc    = read[Absolute];    
+    workFunc    = [this, readFunc] { setA(readFunc()); };     
+    disassemblyFunc = m_disassemblyFunctions["AbsoluteMem"];    
+    m_instructions[0xAD] = Instruction(0xAD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // BD nn nn  nz----  4*  LDA nnnn,X  Load A with Absolute,X    A=[nnnn+X]    
+    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };    
+    readFunc    = read[AbsoluteX];    
+    workFunc    = [this, readFunc] { setA(readFunc()); };     
+    disassemblyFunc = m_disassemblyFunctions["Absolute,X"];    
+    m_instructions[0xBD] = Instruction(0xBD, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // B9 nn nn  nz----  4*  LDA nnnn,Y  Load A with Absolute,Y    A=[nnnn+Y]    
+    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };    
+    readFunc    = read[AbsoluteY];    
+    workFunc    = [this, readFunc] { setA(readFunc()); };     
+    disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];    
+    m_instructions[0xB9] = Instruction(0xB9, 3, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // A1 nn     nz----  6   LDA (nn,X)  Load A with (Indirect,X)  A=[WORD[nn+X]]    
+    cycleFunc   = [this] { return 6; };    
+    readFunc    = read[IndirectX];    
+    workFunc    = [this, readFunc] { setA(readFunc()); };     
+    disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];   
+    m_instructions[0xA1] = Instruction(0xA1, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // B1 nn     nz----  5*  LDA (nn),Y  Load A with (Indirect),Y  A=[WORD[nn]+Y]    
+    boundaryFunc = m_boundaryFuncs[IndirectY];    
+    cycleFunc   = [this, boundaryFunc] { return 5 + boundaryFunc(); };    
+    readFunc    = read[IndirectY];    
+    workFunc    = [this, readFunc] { setA(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];    
+    m_instructions[0xB1] = Instruction(0xB1, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    
+    // A2 nn     nz----  2   LDX #nn     Load X with Immediate     X=nn    
+    cycleFunc   = [this] { return 2; };     
+    workFunc    = [this] { setX(byteOperand()); };    
+    disassemblyFunc = m_disassemblyFunctions["Immediate"];    
+    m_instructions[0xA2] = Instruction(0xA2, 2, "LDX", disassemblyFunc, cycleFunc, workFunc);    
+    // A6 nn     nz----  3   LDX nn      Load X with Zero Page     X=[nn]    
+    cycleFunc   = [this] { return 3; };     
+    readFunc    = read[ZeroPage];    
+    workFunc    = [this, readFunc] { setX(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    
+    m_instructions[0xA6] = Instruction(0xA6, 2, "LDX", disassemblyFunc, cycleFunc, workFunc);    
+    // B6 nn     nz----  4   LDX nn,Y    Load X with Zero Page,Y   X=[nn+Y]    
+    cycleFunc   = [this] { return 4; };     
+    readFunc    = read[ZeroPageY];    
+    workFunc    = [this, readFunc] { setX(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage,Y"];    
+    m_instructions[0xB6] = Instruction(0xB6, 2, "LDX", disassemblyFunc, cycleFunc, workFunc);    
+    // AE nn nn  nz----  4   LDX nnnn    Load X with Absolute      X=[nnnn]    
+    readFunc    = read[Absolute];    
+    workFunc    = [this, readFunc] { setX(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["AbsoluteMem"];    
+    m_instructions[0xAE] = Instruction(0xAE, 3, "LDX", disassemblyFunc, cycleFunc, workFunc);    
+    // BE nn nn  nz----  4*  LDX nnnn,Y  Load X with Absolute,Y    X=[nnnn+Y]    
+    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };     
+    readFunc    = read[AbsoluteY];    
+    workFunc    = [this, readFunc] { setX(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];    
+    m_instructions[0xBE] = Instruction(0xBE, 3, "LDX", disassemblyFunc, cycleFunc, workFunc);    
+    // A0 nn     nz----  2   LDY #nn     Load Y with Immediate     Y=nn    
+    cycleFunc   = [this] { return 2; };     
+    workFunc    = [this] { setY(byteOperand()); };    
+    disassemblyFunc = m_disassemblyFunctions["Immediate"];    
+    m_instructions[0xA0] = Instruction(0xA0, 2, "LDY", disassemblyFunc, cycleFunc, workFunc);    
+    // A4 nn     nz----  3   LDY nn      Load Y with Zero Page     Y=[nn]    
+    cycleFunc   = [this] { return 3; };     
+    readFunc    = read[ZeroPage];    
+    workFunc    = [this, readFunc] { setY(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    
+    m_instructions[0xA4] = Instruction(0xA4, 2, "LDY", disassemblyFunc, cycleFunc, workFunc);    
+    // B4 nn     nz----  4   LDY nn,X    Load Y with Zero Page,X   Y=[nn+X]    
+    cycleFunc   = [this] { return 4; };     
+    readFunc    = read[ZeroPageX];    
+    workFunc    = [this, readFunc] { setY(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];    
+    m_instructions[0xB4] = Instruction(0xB4, 2, "LDY", disassemblyFunc, cycleFunc, workFunc);    
+    // AC nn nn  nz----  4   LDY nnnn    Load Y with Absolute      Y=[nnnn]    
+    readFunc    = read[Absolute];    
+    workFunc    = [this, readFunc] { setY(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];    
+    m_instructions[0xAC] = Instruction(0xAC, 3, "LDY", disassemblyFunc, cycleFunc, workFunc);    
+    // BC nn nn  nz----  4*  LDY nnnn,X  Load Y with Absolute,X    Y=[nnnn+X]    
+    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };    
+    readFunc    = read[AbsoluteX];    
+    workFunc    = [this, readFunc] { setY(readFunc()); };    
+    disassemblyFunc = m_disassemblyFunctions["Absolute,X"];    
+    m_instructions[0xBC] = Instruction(0xBC, 3, "LDY", disassemblyFunc, cycleFunc, workFunc);            
+
+    // Store Register in Memory    
+    // 85 nn     ------  3   STA nn      Store A in Zero Page     [nn]=A    
+    cycleFunc   = [this] { return 3; };     
+    writeFunc   = write[ZeroPage];    
+    workFunc    = [this, writeFunc] { writeFunc(A()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage"];    
+    m_instructions[0x85] = Instruction(0x85, 2, "STA", disassemblyFunc, cycleFunc, workFunc);    
+    // 95 nn     ------  4   STA nn,X    Store A in Zero Page,X   [nn+X]=A    
+    cycleFunc   = [this] { return 4; };     
+    writeFunc   = write[ZeroPageX];    
+    workFunc    = [this, writeFunc] { writeFunc(A()); };    
+    disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];    
+    m_instructions[0x95] = Instruction(0x95, 2, "STA", disassemblyFunc, cycleFunc, workFunc);    
+    // 8D nn nn  ------  4   STA nnnn    Store A in Absolute      [nnnn]=A    
+    writeFunc   = write[Absolute];    
+    workFunc    = [this, writeFunc] { writeFunc(A()); };    
+    disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];    
+    m_instructions[0x8D] = Instruction(0x8D, 3, "STA", disassemblyFunc, cycleFunc, workFunc);    
+    // 9D nn nn  ------  5   STA nnnn,X  Store A in Absolute,X    [nnnn+X]=A    
+    cycleFunc   = [this] { return 5; };     
+    writeFunc   = write[AbsoluteX];    
+    workFunc    = [this, writeFunc] { writeFunc(A()); };    
+    disassemblyFunc = m_disassemblyFunctions["Absolute,X"];    
+    m_instructions[0x9D] = Instruction(0x9D, 3, "STA", disassemblyFunc, cycleFunc, workFunc);    
+    // 99 nn nn  ------  5   STA nnnn,Y  Store A in Absolute,Y    [nnnn+Y]=A    
+    writeFunc   = write[AbsoluteY];    
+    workFunc    = [this, writeFunc] { writeFunc(A()); };    
+    disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];    
+    m_instructions[0x99] = Instruction(0x99, 3, "STA", disassemblyFunc, cycleFunc, workFunc);    
+    // 81 nn     ------  6   STA (nn,X)  Store A in (Indirect,X)  [[nn+x]]=A    
+    cycleFunc   = [this] { return 6; };     
+    writeFunc   = write[IndirectX];    
+    workFunc    = [this, writeFunc] { writeFunc(A()); };    
+    disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];    
+    m_instructions[0x81] = Instruction(0x81, 2, "STA", disassemblyFunc, cycleFunc, workFunc);    
+    // 91 nn     ------  6   STA (nn),Y  Store A in (Indirect),Y  [[nn]+y]=A
     writeFunc   = write[IndirectY];
     workFunc    = [this, writeFunc] { writeFunc(A()); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];
@@ -546,39 +724,37 @@ buildMemoryOperationFuncs()
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xC5] = Instruction(0xC5, 2, "CMP", disassemblyFunc, cycleFunc, workFunc);
     // D5 nn     nzc---  4   CMP nn,X    Compare A with Zero Page,X   A-[nn+X]
-    read        = readFunc[ZeroPageX];
+    readFunc    = read[ZeroPageX];
     cycleFunc   = [this] { return 4; }; 
     workFunc    = [this, readFunc] { compare(A(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0xD5] = Instruction(0xD5, 2, "CMP", disassemblyFunc, cycleFunc, workFunc);
     // CD nn nn  nzc---  4   CMP nnnn    Compare A with Absolute      A-[nnnn]
-    read        = readFunc[Absolute];
+    readFunc    = read[Absolute];
     workFunc    = [this, readFunc] { compare(A(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xCD] = Instruction(0xCD, 3, "CMP", disassemblyFunc, cycleFunc, workFunc);
     // DD nn nn  nzc---  4*  CMP nnnn,X  Compare A with Absolute,X    A-[nnnn+X]
-    read        = readFunc[AbsoluteX];
+    readFunc    = read[AbsoluteX];
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); }; 
     workFunc    = [this, readFunc] { compare(A(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0xDD] = Instruction(0xDD, 3, "CMP", disassemblyFunc, cycleFunc, workFunc);
     // D9 nn nn  nzc---  4*  CMP nnnn,Y  Compare A with Absolute,Y    A-[nnnn+Y]
-    read        = readFunc[AbsoluteY];
+    readFunc    = read[AbsoluteY];
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); }; 
     workFunc    = [this, readFunc] { compare(A(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,Y"];
     m_instructions[0xD9] = Instruction(0xD9, 3, "CMP", disassemblyFunc, cycleFunc, workFunc);
     // C1 nn     nzc---  6   CMP (nn,X)  Compare A with (Indirect,X)  A-[[nn+X]]
-    read        = readFunc[IndirectX];
+    readFunc    = read[IndirectX];
     cycleFunc   = [this] { return 6; }; 
-    // Indirect TRUE
-    workFunc    = [this] { compare(A(), m_memory.byteAt(m_memory.wordAt(byteOperand() + X(), true))); };
+    workFunc    = [this] { compare(A(), m_memory.read(wordAt(byteOperand() + X(), true))); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
     m_instructions[0xC1] = Instruction(0xC1, 2, "CMP", disassemblyFunc, cycleFunc, workFunc);
     // D1 nn     nzc---  5*  CMP (nn),Y  Compare A with (Indirect),Y  A-[[nn]+Y]
-    // Indirect TRUE
-    cycleFunc   = [this] { return 5 + crossesPageBoundary(m_memory.wordAt(byteOperand(), true), Y()); }; 
-    workFunc    = [this] { compare(A(), m_memory.byteAt(m_memory.wordAt(byteOperand(), true) + Y())); };
+    cycleFunc   = [this] { return 5 + crossesPageBoundary(wordAt(byteOperand(), true), Y()); }; 
+    workFunc    = [this] { compare(A(), m_memory.read(wordAt(byteOperand(), true) + Y())); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect),Y"];
     m_instructions[0xD1] = Instruction(0xD1, 2, "CMP", disassemblyFunc, cycleFunc, workFunc);
     // E0 nn     nzc---  2   CPX #nn     Compare X with Immediate     X-nn
@@ -587,13 +763,15 @@ buildMemoryOperationFuncs()
     disassemblyFunc = m_disassemblyFunctions["Immediate"];
     m_instructions[0xE0] = Instruction(0xE0, 2, "CPX", disassemblyFunc, cycleFunc, workFunc);
     // E4 nn     nzc---  3   CPX nn      Compare X with Zero Page     X-[nn]
+    readFunc    = read[ZeroPage];
     cycleFunc   = [this] { return 3; }; 
-    workFunc    = [this] { compare(X(), m_memory.byteAtZeroPage(byteOperand())); };
+    workFunc    = [this, readFunc] { compare(X(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xE4] = Instruction(0xE4, 2, "CPX", disassemblyFunc, cycleFunc, workFunc);
     // EC nn nn  nzc---  4   CPX nnnn    Compare X with Absolute      X-[nnnn]
+    readFunc    = read[Absolute];
     cycleFunc   = [this] { return 4; }; 
-    workFunc    = [this] { compare(X(), m_memory.byteAt(wordOperand())); };
+    workFunc    = [this, readFunc] { compare(X(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xEC] = Instruction(0xEC, 3, "CPX", disassemblyFunc, cycleFunc, workFunc);
     // C0 nn     nzc---  2   CPY #nn     Compare Y with Immediate     Y-nn
@@ -602,13 +780,15 @@ buildMemoryOperationFuncs()
     disassemblyFunc = m_disassemblyFunctions["Immediate"];
     m_instructions[0xC0] = Instruction(0xC0, 2, "CPY", disassemblyFunc, cycleFunc, workFunc);
     // C4 nn     nzc---  3   CPY nn      Compare Y with Zero Page     Y-[nn]
+    readFunc    = read[ZeroPage];
     cycleFunc   = [this] { return 3; }; 
-    workFunc    = [this] { compare(Y(), m_memory.byteAtZeroPage(byteOperand())); };
+    workFunc    = [this, readFunc] { compare(Y(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xC4] = Instruction(0xC4, 2, "CPY", disassemblyFunc, cycleFunc, workFunc);
     // CC nn nn  nzc---  4   CPY nnnn    Compare Y with Absolute      Y-[nnnn]
+    readFunc    = read[Absolute];
     cycleFunc   = [this] { return 4; }; 
-    workFunc    = [this] { compare(Y(), m_memory.byteAt(wordOperand())); };
+    workFunc    = [this, readFunc] { compare(Y(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xCC] = Instruction(0xCC, 3, "CPY", disassemblyFunc, cycleFunc, workFunc);
 
@@ -1789,13 +1969,6 @@ popStackWord()
     return value;
 }
 
-Cpu65XX::Memory&
-Cpu65XX::
-memory() 
-{
-    return m_memory;
-}
-
 void
 Cpu65XX::
 resetImpl()
@@ -1849,7 +2022,7 @@ trueAddress(const u16_word& address) const
 
 u16_word
 Cpu65XX::
-wordAt(const u16_word address, bool indirect) 
+wordAt(Memory::address_t address, bool indirect) 
 {
     // Zero page indirect 
     // (If the address is in the zero page OR we're an indirect read) AND
@@ -1947,7 +2120,7 @@ StatusRegister()
 
 
 Cpu65XX::StatusRegister::
-StatusRegister(u8_byte& value) 
+StatusRegister(u8_byte value) 
 {
     m_status[0] = value & 0x01;
     m_status[1] = value & 0x02;

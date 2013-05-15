@@ -31,7 +31,7 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         class StatusRegister {
             public:
                 StatusRegister();
-                StatusRegister(u8_byte&);
+                StatusRegister(u8_byte);
 
                 // accessors
                 bool carry()        const;
@@ -149,7 +149,7 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         // Stack operations
         void pushStackByte(const u8_byte&);
         void pushStackWord(const u16_word&);
-        u8_byte&   popStackByte();
+        u8_byte    popStackByte();
         u16_word   popStackWord();
 
     private:
