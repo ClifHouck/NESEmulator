@@ -1,5 +1,7 @@
 #include "IO/iNESFile.hpp"
 #include "CPU/Cpu65XX.hpp"
+#include "utility/DataTypes.hpp"
+#include "utility/Memory.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -7,7 +9,7 @@
 int main(int argc, char ** argv) {
 
     iNESFile testRom("nestest.nes");
-    unsigned char mappedData[64 * 1024];
+    u8_byte mappedData[64 * 1024];
 
     std::copy(testRom.m_fileData + 16, 
               testRom.m_fileData + 16 + testRom.PRGROMDataSize(), 
@@ -15,8 +17,10 @@ int main(int argc, char ** argv) {
     std::copy(testRom.m_fileData + 16, 
               testRom.m_fileData + 16 + testRom.PRGROMDataSize(), 
               mappedData + 0xC000);
+
+    Memory memory(64 * 1024, mappedData);
     
-    Cpu65XX cpu(mappedData, 64 * 1024);
+    Cpu65XX cpu(memory);
 
     cpu.setPC(0xC000);
 

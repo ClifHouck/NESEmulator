@@ -11,6 +11,7 @@ public:
     typedef u8_byte      data_t;
 
     Memory(size_t size);
+    Memory(size_t size, data_t *initData);
     ~Memory();
 
     u8_byte     read(const address_t address);
@@ -18,14 +19,11 @@ public:
 
     void        rawWrite(const address_t address, const data_t data);
 
-    template <typename ReturnType>  
-    ReturnType rawRead(const address_t address);
-
-    template <u8_byte> u8_byte rawRead(const address_t address) {
+    u8_byte rawReadByte(const address_t address) {
         return getData(address);
     }
 
-    template <u16_word> u16_word rawRead(const address_t address) {
+    u16_word rawReadWord(const address_t address) {
         return  static_cast<u16_word>(getData(address)) * 0x100 + 
                 static_cast<u16_word>(getData(address + 1));
     }

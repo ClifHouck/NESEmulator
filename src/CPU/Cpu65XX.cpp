@@ -66,13 +66,13 @@ buildDisassemblyFunctions()
         std::stringstream output;
         output.fill('0');
         output << std::hex << "($" << std::setw(4) << (int)wordOperand() << ") = "
-               << std::setw(4) << (int)m_memory.rawRead<u16_word>(wordOperand());
+               << std::setw(4) << (int)m_memory.rawReadWord(wordOperand());
         return output.str();
     };
     m_disassemblyFunctions["ZeroPage"] = [this] {
         std::stringstream output;
         output.fill('0');
-        output << std::hex << "$" << std::setw(2) << (int)byteOperand() << " = " << std::setw(2) << (int)m_memory.rawRead<u8_byte>(byteOperand());
+        output << std::hex << "$" << std::setw(2) << (int)byteOperand() << " = " << std::setw(2) << (int)m_memory.rawReadByte(byteOperand());
         return output.str();
     };
     m_disassemblyFunctions["ZeroPage,X"] = [this] {
@@ -81,7 +81,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(2) << (int)byteOperand() << ",X @ " 
                << std::setw(2) << (int)(byteOperand() + X()) % 0x100 << " = " 
-               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(zeroPage(byteOperand() + X()));
+               << std::setw(2) << (int)m_memory.rawReadByte(zeroPage(byteOperand() + X()));
         return output.str();
     };
     m_disassemblyFunctions["ZeroPage,Y"] = [this] {
@@ -90,7 +90,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(2) << (int)byteOperand() << ",Y @ " 
                << std::setw(2) << (int)(byteOperand() + Y()) % 0x100 << " = " 
-               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(zeroPage(byteOperand() + Y()));
+               << std::setw(2) << (int)m_memory.rawReadByte(zeroPage(byteOperand() + Y()));
         return output.str();
     };
     m_disassemblyFunctions["Absolute"] = [this] {
@@ -105,7 +105,7 @@ buildDisassemblyFunctions()
         output.fill('0');
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand()
-               << " = "  << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand());
+               << " = "  << std::setw(2) << (int)m_memory.rawReadByte(wordOperand());
         return output.str();
     };
     m_disassemblyFunctions["AbsoluteMem"] = [this] {
@@ -113,7 +113,7 @@ buildDisassemblyFunctions()
         output.fill('0');
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand()
-               << " = "  << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand());
+               << " = "  << std::setw(2) << (int)m_memory.rawReadByte(wordOperand());
         return output.str();
     };
     m_disassemblyFunctions["Absolute,X"] = [this] {
@@ -122,7 +122,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand() << ",X @ " 
                << std::setw(4) << (int)(wordOperand() + X()) << " = " 
-               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand() + X());
+               << std::setw(2) << (int)m_memory.rawReadByte(wordOperand() + X());
         return output.str();
     };
     m_disassemblyFunctions["Absolute,Y"] = [this] {
@@ -131,7 +131,7 @@ buildDisassemblyFunctions()
         output << std::hex << "$" 
                << std::setw(4) << (int)wordOperand() << ",Y @ " 
                << std::setw(4) << (int)(wordOperand() + Y()) % 0x10000 << " = " 
-               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(wordOperand() + Y());
+               << std::setw(2) << (int)m_memory.rawReadByte(wordOperand() + Y());
         return output.str();
     };
     m_disassemblyFunctions["(Indirect,X)"] = [this] {
@@ -140,8 +140,8 @@ buildDisassemblyFunctions()
         output << std::hex << "($" 
                << std::setw(2) << (int)byteOperand() << ",X) @ " 
                << std::setw(2) << (int)((u8_byte)(byteOperand() + X())) << " = " 
-               << std::setw(4) << (int)m_memory.rawRead<u16_word>(byteOperand() + X()) << " = "
-               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(m_memory.rawRead<u16_word>(byteOperand() + X()));
+               << std::setw(4) << (int)m_memory.rawReadWord(byteOperand() + X()) << " = "
+               << std::setw(2) << (int)m_memory.rawReadByte(m_memory.rawReadWord(byteOperand() + X()));
         return output.str();
     };
     m_disassemblyFunctions["(Indirect),Y"] = [this] {
@@ -149,9 +149,9 @@ buildDisassemblyFunctions()
         output.fill('0');
         output << std::hex << "($" 
                << std::setw(2) << (int)byteOperand() << "),Y = " 
-               << std::setw(4) << (int)m_memory.rawRead<u16_word>(byteOperand()) << " @ " 
-               << std::setw(4) << (int)(m_memory.rawRead<u16_word>(byteOperand()) + Y()) % 0x10000 << " = "
-               << std::setw(2) << (int)m_memory.rawRead<u8_byte>(m_memory.rawRead<u16_word>(byteOperand()) + Y());
+               << std::setw(4) << (int)m_memory.rawReadWord(byteOperand()) << " @ " 
+               << std::setw(4) << (int)(m_memory.rawReadWord(byteOperand()) + Y()) % 0x10000 << " = "
+               << std::setw(2) << (int)m_memory.rawReadByte(m_memory.rawReadWord(byteOperand()) + Y());
         return output.str();
     };
 }
@@ -182,7 +182,7 @@ buildMemoryOperationFuncs()
         return m_memory.read(wordAt(zeroPage(byteOperand() + X())));
     };
     m_readOperandFuncs[IndirectY] = [this]() -> u8_byte {
-        return m_memory.read(m_memory.rawRead<u16_word>(zeroPage(byteOperand()) + Y()));
+        return m_memory.read(m_memory.rawReadWord(zeroPage(byteOperand()) + Y()));
     };
 
     m_writeOperandFuncs[ZeroPage]   = [this](u8_byte data) -> void { 
@@ -201,17 +201,17 @@ buildMemoryOperationFuncs()
         m_memory.write(wordOperand() + Y(), data); 
     };
     m_writeOperandFuncs[IndirectX] = [this](u8_byte data) -> void { 
-       m_memory.write(m_memory.rawRead<u16_word>(zeroPage(byteOperand() + X())), data); 
+       m_memory.write(m_memory.rawReadWord(zeroPage(byteOperand() + X())), data); 
     };
     m_writeOperandFuncs[IndirectY] = [this](u8_byte data) -> void { 
-        m_memory.write(m_memory.rawRead<u16_word>(zeroPage(byteOperand()) + Y()), data); 
+        m_memory.write(m_memory.rawReadWord(zeroPage(byteOperand()) + Y()), data); 
     };
 
     m_boundaryFuncs[IndirectX] = [this]() -> bool {        
-        return crossesPageBoundary(m_memory.rawRead<u16_word>(byteOperand() + X()));    
+        return crossesPageBoundary(m_memory.rawReadWord(byteOperand() + X()));    
     };    
     m_boundaryFuncs[IndirectY] = [this]() -> bool {        
-        return crossesPageBoundary(m_memory.rawRead<u16_word>(byteOperand()), Y());    
+        return crossesPageBoundary(m_memory.rawReadWord(byteOperand()), Y());    
     };
 }
 
@@ -1675,14 +1675,14 @@ u8_byte
 Cpu65XX::
 byteOperand() 
 {
-    return m_memory.rawRead<u8_byte>(PC() + 1);
+    return m_memory.rawReadByte(PC() + 1);
 }
 
 u16_word          
 Cpu65XX::
 wordOperand() 
 {
-    return m_memory.rawRead<u16_word>(PC() + 1);
+    return m_memory.rawReadWord(PC() + 1);
 }
 
 bool
@@ -1719,10 +1719,10 @@ debugOutput()
     output << std::hex << std::setw(4) << m_PC << "  ";
     unsigned int length = m_queuedInstruction->length();
     for (unsigned int i = 0; i < length; ++i) {
-        output << std::setw(2) << (int)m_memory.rawRead<u8_byte>(m_PC+i) << " ";
+        output << std::setw(2) << (int)m_memory.rawReadByte(m_PC+i) << " ";
     }
     
-    bool illegalInstruction = m_illegalInstructions.find(m_memory.rawRead<u8_byte>(m_PC)) != m_illegalInstructions.end();
+    bool illegalInstruction = m_illegalInstructions.find(m_memory.rawReadByte(m_PC)) != m_illegalInstructions.end();
     int spaces = 7 - ((length - 1) * 3) - illegalInstruction;
     output << std::string(spaces, ' ');
     if (illegalInstruction) {
@@ -1957,7 +1957,7 @@ Cpu65XX::
 popStackByte()
 {
     setS(S() + 1);
-    return m_memory.rawRead<u8_byte>(stackPointer());
+    return m_memory.rawReadByte(stackPointer());
 }
 
 u16_word 
@@ -1965,7 +1965,7 @@ Cpu65XX::
 popStackWord()
 {
     setS(S() + 2);
-    u16_word value = (((u16_word)m_memory.rawRead<u8_byte>(stackPointer())) << 8) + m_memory.rawRead<u8_byte>(stackPointer() - 1);
+    u16_word value = (((u16_word)m_memory.rawReadByte(stackPointer())) << 8) + m_memory.rawReadByte(stackPointer() - 1);
     return value;
 }
 
@@ -2029,10 +2029,10 @@ wordAt(Memory::address_t address, bool indirect)
     // (The address is at the top of the page)
     // Then return the word consisting of the bottom (0xXX00) byte of the page, and the last byte (0xXXFF) of the page.
     if ((address < 0x0100 || indirect) && (address & 0x00FF) == 0xFF) {
-        return m_memory.rawRead<u8_byte>(address & 0xFF00) * 0x0100 + 
-               m_memory.rawRead<u8_byte>(address);
+        return m_memory.rawReadByte(address & 0xFF00) * 0x0100 + 
+               m_memory.rawReadByte(address);
     }
-    return m_memory.rawRead<u16_word>(address);
+    return m_memory.rawReadWord(address);
 }
 
 // Begin Instruction implementation

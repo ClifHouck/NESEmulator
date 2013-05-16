@@ -41,7 +41,12 @@ public:
     class RegisterBlock : public Memory 
     {
     public:
-        RegisterBlock(PPU &ppu);
+        static const size_t registerBlockSize = 8;
+
+        RegisterBlock(PPU &ppu) : 
+            Memory(registerBlockSize),
+            m_ppu (ppu)
+        {}
 
     protected:
         virtual data_t getData(address_t address);

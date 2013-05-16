@@ -1,13 +1,26 @@
 #include "Memory.hpp"
 
 #include <cassert>
+#include <algorithm>
 
 Memory::
 Memory(size_t size) :
     m_size (size),
     m_backing (nullptr)
 {
-    m_backing = new u8_byte[size];
+    m_backing = new data_t[size];
+    assert(m_backing != nullptr);
+}
+
+Memory::
+Memory(size_t size,
+       u8_byte *initData) :
+    m_size (size),
+    m_backing (nullptr)
+{
+    m_backing = new data_t[size];
+    assert(m_backing != nullptr);
+    std::copy(initData, initData + size, m_backing);
 }
 
 Memory::
