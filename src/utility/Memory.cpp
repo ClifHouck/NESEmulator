@@ -41,7 +41,7 @@ void
 Memory::
 write(const address_t address, data_t data)
 {
-    assert(address > 0);
+    assert(address >= 0);
     assert(address < m_size);
     setData(address, data);
 }
@@ -50,7 +50,7 @@ Memory::data_t
 Memory::
 getData(address_t address)
 {
-    assert(address > 0);
+    assert(address >= 0);
     assert(address < m_size);
     return m_backing[address];
 }
@@ -59,7 +59,7 @@ void
 Memory::
 setData(address_t address, data_t data)
 {
-    assert(address > 0);
+    assert(address >= 0);
     assert(address < m_size);
     m_backing[address] = data;
 }

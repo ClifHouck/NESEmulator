@@ -7,7 +7,7 @@ class Memory
 {
 public:
     typedef unsigned int size_t;
-    typedef unsigned int address_t;
+    typedef u16_word     address_t;
     typedef u8_byte      data_t;
 
     Memory(size_t size);
@@ -24,8 +24,8 @@ public:
     }
 
     u16_word rawReadWord(const address_t address) {
-        return  static_cast<u16_word>(getData(address)) * 0x100 + 
-                static_cast<u16_word>(getData(address + 1));
+        return  static_cast<u16_word>(getData(address + 1)) * 0x100 + 
+                static_cast<u16_word>(getData(address));
     }
 
     size_t size() const;
