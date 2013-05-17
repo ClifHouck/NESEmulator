@@ -150,8 +150,8 @@ buildDisassemblyFunctions()
         output << std::hex << "($" 
                << std::setw(2) << (int)byteOperand() << "),Y = " 
                << std::setw(4) << (int)m_memory.rawReadWord(byteOperand()) << " @ " 
-               << std::setw(4) << (int)(m_memory.rawReadWord(byteOperand()) + Y()) % 0x10000 << " = "
-               << std::setw(2) << (int)m_memory.rawReadByte(m_memory.rawReadWord(byteOperand()) + Y());
+               << std::setw(4) << (int)(wordAt(zeroPage(byteOperand())) + Y()) % 0x10000 << " = "
+               << std::setw(2) << (int)m_memory.rawReadByte(wordAt(zeroPage(byteOperand())) + Y());
         return output.str();
     };
 }
@@ -191,6 +191,9 @@ buildMemoryOperationFuncs()
     m_writeOperandFuncs[ZeroPageX] = [this](u8_byte data) -> void { 
        m_memory.write(zeroPage(byteOperand() + X()), data); 
     };            
+    m_writeOperandFuncs[ZeroPageY] = [this](u8_byte data) -> void { 
+       m_memory.write(zeroPage(byteOperand() + Y()), data); 
+    };
     m_writeOperandFuncs[Absolute] = [this](u8_byte data) -> void { 
         m_memory.write(wordOperand(), data); 
     };                         
@@ -247,8 +250,7 @@ buildInstructionSet() {
 
     // Load Register from Memory    
     // A9 nn     nz----  2   LDA #nn     Load A with Immediate     A=nn    
-    readFunc = read[Immediate];    
-    workFunc = [this, readFunc] { setA(readFunc()); };    
+    workFunc = [this] { setA(byteOperand()); };    
     disassemblyFunc = m_disassemblyFunctions["Immediate"];    
     m_instructions[0xA9] = Instruction(0xA9, 2, "LDA", disassemblyFunc, cycleFunc, workFunc);    
     // A5 nn     nz----  3   LDA nn      Load A with Zero Page     A=[nn]    
@@ -792,38 +794,47 @@ buildInstructionSet() {
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xCC] = Instruction(0xCC, 3, "CPY", disassemblyFunc, cycleFunc, workFunc);
 
-    /*
     // Bit Test
     // 24 nn     xz---x  3   BIT nn      Bit Test   A AND [nn], N=[nn].7, V=[nn].6
     cycleFunc   = [this] { return 3; }; 
-    workFunc    = [this] { bitTest(A(), m_memory.byteAt(byteOperand())); };
+    readFunc    = read[ZeroPage];
+    workFunc    = [this, readFunc] { bitTest(A(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x24] = Instruction(0x24, 2, "BIT", disassemblyFunc, cycleFunc, workFunc);
     // 2C nn nn  xz---x  4   BIT nnnn    Bit Test   A AND [..], N=[..].7, V=[..].6
     cycleFunc   = [this] { return 4; }; 
-    workFunc    = [this] { bitTest(A(), m_memory.byteAt(wordOperand())); };
+    readFunc    = read[Absolute];
+    workFunc    = [this, readFunc] { bitTest(A(), readFunc()); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x2C] = Instruction(0x2C, 3, "BIT", disassemblyFunc, cycleFunc, workFunc);
 
     // Increment by one
     // E6 nn     nz----  5   INC nn      Increment Zero Page    [nn]=[nn]+1
     cycleFunc   = [this] { return 5; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(byteOperand()), m_memory.byteAtZeroPage(byteOperand()) + 1); };
+    readFunc    = read[ZeroPage];
+    writeFunc   = write[ZeroPage];
+    workFunc    = [this, writeFunc, readFunc] { writeFunc(readFunc() + 1); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xE6] = Instruction(0xE6, 2, "INC", disassemblyFunc, cycleFunc, workFunc);
     // F6 nn     nz----  6   INC nn,X    Increment Zero Page,X  [nn+X]=[nn+X]+1
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(byteOperand() + X()), m_memory.byteAtZeroPage(byteOperand() + X()) + 1); };
+    readFunc    = read[ZeroPageX];
+    writeFunc   = write[ZeroPageX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(readFunc() + 1); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0xF6] = Instruction(0xF6, 2, "INC", disassemblyFunc, cycleFunc, workFunc);
     // EE nn nn  nz----  6   INC nnnn    Increment Absolute     [nnnn]=[nnnn]+1
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand()), m_memory.byteAt(wordOperand()) + 1); };
+    readFunc    = read[Absolute];
+    writeFunc   = write[Absolute];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(readFunc() + 1); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xEE] = Instruction(0xEE, 3, "INC", disassemblyFunc, cycleFunc, workFunc);
     // FE nn nn  nz----  7   INC nnnn,X  Increment Absolute,X   [nnnn+X]=[nnnn+X]+1
     cycleFunc   = [this] { return 7; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand() + X()), m_memory.byteAt(wordOperand() + X()) + 1); };
+    readFunc    = read[AbsoluteX];
+    writeFunc   = write[AbsoluteX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(readFunc() + 1); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0xFE] = Instruction(0xFE, 3, "INC", disassemblyFunc, cycleFunc, workFunc);
     // E8        nz----  2   INX         Increment X            X=X+1
@@ -838,21 +849,29 @@ buildInstructionSet() {
     // Decrement by one
     // C6 nn     nz----  5   DEC nn      Decrement Zero Page    [nn]=[nn]-1
     cycleFunc   = [this] { return 5; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand()), m_memory.byteAtZeroPage(byteOperand()) - 1); };
+    readFunc    = read[ZeroPage];
+    writeFunc   = write[ZeroPage];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(readFunc() - 1); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0xC6] = Instruction(0xC6, 2, "DEC", disassemblyFunc, cycleFunc, workFunc);
     // D6 nn     nz----  6   DEC nn,X    Decrement Zero Page,X  [nn+X]=[nn+X]-1
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand() + X()), m_memory.byteAtZeroPage(byteOperand() + X()) - 1); };
+    readFunc    = read[ZeroPageX];
+    writeFunc   = write[ZeroPageX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(readFunc() - 1); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0xD6] = Instruction(0xD6, 2, "DEC", disassemblyFunc, cycleFunc, workFunc);
     // CE nn nn  nz----  6   DEC nnnn    Decrement Absolute     [nnnn]=[nnnn]-1
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand()), m_memory.byteAt(wordOperand()) - 1); };
+    readFunc    = read[Absolute];
+    writeFunc   = write[Absolute];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(readFunc() - 1); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0xCE] = Instruction(0xCE, 3, "DEC", disassemblyFunc, cycleFunc, workFunc);
     // DE nn nn  nz----  7   DEC nnnn,X  Decrement Absolute,X   [nnnn+X]=[nnnn+X]-1
     cycleFunc   = [this] { return 7; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand() + X()), m_memory.byteAt(wordOperand() + X()) - 1); };
+    readFunc    = read[AbsoluteX];
+    writeFunc   = write[AbsoluteX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(readFunc() - 1); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0xDE] = Instruction(0xDE, 3, "DEC", disassemblyFunc, cycleFunc, workFunc);
     // CA        nz----  2   DEX         Decrement X            X=X-1
@@ -873,21 +892,29 @@ buildInstructionSet() {
     m_instructions[0x0A] = Instruction(0x0A, 1, "ASL", disassemblyFunc, cycleFunc, workFunc);
     // 06 nn     nzc---  5   ASL nn      Shift Left Zero Page     SHL [nn]
     cycleFunc   = [this] { return 5; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand()), shiftLeft(m_memory.byteAtZeroPage(byteOperand()))); };
+    readFunc    = read[ZeroPage];
+    writeFunc   = write[ZeroPage];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftLeft(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x06] = Instruction(0x06, 2, "ASL", disassemblyFunc, cycleFunc, workFunc);
     // 16 nn     nzc---  6   ASL nn,X    Shift Left Zero Page,X   SHL [nn+X]
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand() + X()), shiftLeft(m_memory.byteAtZeroPage(byteOperand() + X()))); };
+    readFunc    = read[ZeroPageX];
+    writeFunc   = write[ZeroPageX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftLeft(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0x16] = Instruction(0x16, 2, "ASL", disassemblyFunc, cycleFunc, workFunc);
     // 0E nn nn  nzc---  6   ASL nnnn    Shift Left Absolute      SHL [nnnn]
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand()), shiftLeft(m_memory.byteAt(wordOperand()))); };
+    readFunc    = read[Absolute];
+    writeFunc   = write[Absolute];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftLeft(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x0E] = Instruction(0x0E, 3, "ASL", disassemblyFunc, cycleFunc, workFunc);
     // 1E nn nn  nzc---  7   ASL nnnn,X  Shift Left Absolute,X    SHL [nnnn+X]
     cycleFunc   = [this] { return 7; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand() + X()), shiftLeft(m_memory.byteAt(wordOperand() + X()))); };
+    readFunc    = read[AbsoluteX];
+    writeFunc   = write[AbsoluteX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftLeft(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0x1E] = Instruction(0x1E, 3, "ASL", disassemblyFunc, cycleFunc, workFunc);
 
@@ -899,21 +926,29 @@ buildInstructionSet() {
     m_instructions[0x4A] = Instruction(0x4A, 1, "LSR", disassemblyFunc, cycleFunc, workFunc);
     // 46 nn     0zc---  5   LSR nn      Shift Right Zero Page    SHR [nn]
     cycleFunc   = [this] { return 5; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand()), shiftRight(m_memory.byteAtZeroPage(byteOperand()))); };
+    readFunc    = read[ZeroPage];
+    writeFunc   = write[ZeroPage];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftRight(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x46] = Instruction(0x46, 2, "LSR", disassemblyFunc, cycleFunc, workFunc);
     // 56 nn     0zc---  6   LSR nn,X    Shift Right Zero Page,X  SHR [nn+X]
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand() + X()), shiftRight(m_memory.byteAtZeroPage(byteOperand() + X()))); };
+    readFunc    = read[ZeroPageX];
+    writeFunc   = write[ZeroPageX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftRight(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0x56] = Instruction(0x56, 2, "LSR", disassemblyFunc, cycleFunc, workFunc);
     // 4E nn nn  0zc---  6   LSR nnnn    Shift Right Absolute     SHR [nnnn]
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand()), shiftRight(m_memory.byteAt(wordOperand()))); };
+    readFunc    = read[Absolute];
+    writeFunc   = write[Absolute];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftRight(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x4E] = Instruction(0x4E, 3, "LSR", disassemblyFunc, cycleFunc, workFunc);
     // 5E nn nn  0zc---  7   LSR nnnn,X  Shift Right Absolute,X   SHR [nnnn+X]
     cycleFunc   = [this] { return 7; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand() + X()), shiftRight(m_memory.byteAt(wordOperand() + X()))); };
+    readFunc    = read[AbsoluteX];
+    writeFunc   = write[AbsoluteX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(shiftRight(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0x5E] = Instruction(0x5E, 3, "LSR", disassemblyFunc, cycleFunc, workFunc);
 
@@ -925,21 +960,29 @@ buildInstructionSet() {
     m_instructions[0x2A] = Instruction(0x2A, 1, "ROL", disassemblyFunc, cycleFunc, workFunc);
     // 26 nn     nzc---  5   ROL nn      Rotate Left Zero Page    RCL [nn]
     cycleFunc   = [this] { return 5; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand()), rotateLeftThroughCarry(m_memory.byteAtZeroPage(byteOperand()))); };
+    readFunc    = read[ZeroPage];
+    writeFunc   = write[ZeroPage];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateLeftThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x26] = Instruction(0x26, 2, "ROL", disassemblyFunc, cycleFunc, workFunc);
     // 36 nn     nzc---  6   ROL nn,X    Rotate Left Zero Page,X  RCL [nn+X]
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand() + X()), rotateLeftThroughCarry(m_memory.byteAtZeroPage(byteOperand() + X()))); };
+    readFunc    = read[ZeroPageX];
+    writeFunc   = write[ZeroPageX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateLeftThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0x36] = Instruction(0x36, 2, "ROL", disassemblyFunc, cycleFunc, workFunc);
     // 2E nn nn  nzc---  6   ROL nnnn    Rotate Left Absolute     RCL [nnnn]
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand()), rotateLeftThroughCarry(m_memory.byteAt(wordOperand()))); };
+    readFunc    = read[Absolute];
+    writeFunc   = write[Absolute];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateLeftThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x2E] = Instruction(0x2E, 3, "ROL", disassemblyFunc, cycleFunc, workFunc);
     // 3E nn nn  nzc---  7   ROL nnnn,X  Rotate Left Absolute,X   RCL [nnnn+X]
     cycleFunc   = [this] { return 7; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand() + X()), rotateLeftThroughCarry(m_memory.byteAt(wordOperand() + X()))); };
+    readFunc    = read[AbsoluteX];
+    writeFunc   = write[AbsoluteX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateLeftThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0x3E] = Instruction(0x3E, 3, "ROL", disassemblyFunc, cycleFunc, workFunc);
 
@@ -951,22 +994,30 @@ buildInstructionSet() {
     m_instructions[0x6A] = Instruction(0x6A, 1, "ROR", disassemblyFunc, cycleFunc, workFunc);
     // 66 nn     nzc---  5   ROR nn      Rotate Right Zero Page   RCR [nn]
     cycleFunc   = [this] { return 5; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand()), rotateRightThroughCarry(m_memory.byteAtZeroPage(byteOperand()))); };
+    readFunc    = read[ZeroPage];
+    writeFunc   = write[ZeroPage];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateRightThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x66] = Instruction(0x66, 2, "ROR", disassemblyFunc, cycleFunc, workFunc);
     // 76 nn     nzc---  6   ROR nn,X    Rotate Right Zero Page,X RCR [nn+X]
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAtZeroPage(byteOperand() + X()), rotateRightThroughCarry(m_memory.byteAtZeroPage(byteOperand() + X()))); };
+    readFunc    = read[ZeroPageX];
+    writeFunc   = write[ZeroPageX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateRightThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,X"];
     m_instructions[0x76] = Instruction(0x76, 2, "ROR", disassemblyFunc, cycleFunc, workFunc);
     // 6E nn nn  nzc---  6   ROR nnnn    Rotate Right Absolute    RCR [nnnn]
     cycleFunc   = [this] { return 6; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand()), rotateRightThroughCarry(m_memory.byteAt(wordOperand()))); };
+    readFunc    = read[Absolute];
+    writeFunc   = write[Absolute];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateRightThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x6E] = Instruction(0x6E, 3, "ROR", disassemblyFunc, cycleFunc, workFunc);
     // 7E nn nn  nzc---  7   ROR nnnn,X  Rotate Right Absolute,X  RCR [nnnn+X]
     cycleFunc   = [this] { return 7; }; 
-    workFunc    = [this] { setByte(m_memory.byteAt(wordOperand() + X()), rotateRightThroughCarry(m_memory.byteAt(wordOperand() + X()))); };
+    readFunc    = read[AbsoluteX];
+    writeFunc   = write[AbsoluteX];
+    workFunc    = [this, readFunc, writeFunc] { writeFunc(rotateRightThroughCarry(readFunc())); };
     disassemblyFunc = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0x7E] = Instruction(0x7E, 3, "ROR", disassemblyFunc, cycleFunc, workFunc);
 
@@ -981,7 +1032,7 @@ buildInstructionSet() {
     // 6C nn nn  ------  5   JMP (nnnn)  Jump Indirect              PC=WORD[nnnn]
     cycleFunc   = [this] { return 5; }; 
     // Indirect TRUE
-    workFunc    = [this] { setPC(m_memory.wordAt(wordOperand(), true)); };
+    workFunc    = [this] { setPC(wordAt(wordOperand(), true)); };
     disassemblyFunc = m_disassemblyFunctions["Indirect"];
     m_instructions[0x6C] = Instruction(0x6C, 3, "JMP", disassemblyFunc, cycleFunc, workFunc);
     // 20 nn nn  ------  6   JSR nnnn    Jump and Save Return Addr. [S]=PC+2,PC=nnnn
@@ -1069,7 +1120,7 @@ buildInstructionSet() {
             pushStackWord(PC() + 1);
             pushStackByte(m_status.value());
             m_status.setIRQDisable(true);
-            setPC(m_memory.wordAt(0xFFFE));
+            setPC(wordAt(0xFFFE));
     };
     disassemblyFunc = m_disassemblyFunctions["None"];
     m_instructions[0x00] = Instruction(0x00, 1, "BRK", disassemblyFunc, cycleFunc, workFunc);
@@ -1133,28 +1184,33 @@ buildInstructionSet() {
 
     // 87 nn     ------  3   SAX nn      STA+STX  [nn]=A AND X
     cycleFunc   = [this] { return 3; };
-    workFunc    = [this] { m_memory.byteAtZeroPage(byteOperand()) = A() & X(); };
+    writeFunc   = write[ZeroPage];
+    workFunc    = [this, writeFunc] { writeFunc(A() & X()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage"];
     m_instructions[0x87] = Instruction(0x87, 2, "SAX", disassemblyFunc, cycleFunc, workFunc);
     // 97 nn     ------  4   SAX nn,Y    STA+STX  [nn+Y]=A AND X
     cycleFunc   = [this] { return 4; };
-    workFunc    = [this] { m_memory.byteAtZeroPage(byteOperand() + Y()) = A() & X(); };
+    writeFunc   = write[ZeroPageY];
+    workFunc    = [this, writeFunc] { writeFunc(A() & X()); };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,Y"];
     m_instructions[0x97] = Instruction(0x97, 2, "SAX", disassemblyFunc, cycleFunc, workFunc);
     // 8F nn nn  ------  4   SAX nnnn    STA+STX  [nnnn]=A AND X
-    workFunc    = [this] { m_memory.byteAt(wordOperand()) = A() & X(); };
+    writeFunc   = write[Absolute];
+    workFunc    = [this, writeFunc] { writeFunc(A() & X()); };
     disassemblyFunc = m_disassemblyFunctions["AbsoluteWithValue"];
     m_instructions[0x8F] = Instruction(0x8F, 3, "SAX", disassemblyFunc, cycleFunc, workFunc);
     // 83 nn     ------  6   SAX (nn,X)  STA+STX  [WORD[nn+X]]=A AND X
     cycleFunc   = [this] { return 6; };
-    workFunc    = [this] { m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand() + X())) = A() & X(); };
+    writeFunc   = write[IndirectX];
+    workFunc    = [this, writeFunc] { writeFunc(A() & X()); };
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
     m_instructions[0x83] = Instruction(0x83, 2, "SAX", disassemblyFunc, cycleFunc, workFunc);
 
     // A7 nn     nz----  3   LAX nn      LDA+LDX  A,X=[nn]
     cycleFunc   = [this] { return 3; };
-    workFunc    = [this] { 
-        const u8_byte& data = m_memory.byteAtZeroPage(byteOperand()); 
+    readFunc    = read[ZeroPage];
+    workFunc    = [this, readFunc] { 
+        u8_byte data = readFunc();
         setA(data);
         setX(data);
     };
@@ -1162,16 +1218,18 @@ buildInstructionSet() {
     m_instructions[0xA7] = Instruction(0xA7, 2, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // B7 nn     nz----  4   LAX nn,Y    LDA+LDX  A,X=[nn+Y]
     cycleFunc   = [this] { return 4; };
-    workFunc    = [this] { 
-        const u8_byte& data = m_memory.byteAtZeroPage(byteOperand() + Y()); 
+    readFunc    = read[ZeroPageY];
+    workFunc    = [this, readFunc] { 
+        u8_byte data = readFunc();
         setA(data);
         setX(data);
     };
     disassemblyFunc = m_disassemblyFunctions["ZeroPage,Y"];
     m_instructions[0xB7] = Instruction(0xB7, 2, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // AF nn nn  nz----  4   LAX nnnn    LDA+LDX  A,X=[nnnn]
-    workFunc    = [this] { 
-        const u8_byte& data = m_memory.byteAt(wordOperand()); 
+    readFunc    = read[Absolute];
+    workFunc    = [this, readFunc] { 
+        u8_byte data = readFunc();
         setA(data);
         setX(data);
     };
@@ -1179,8 +1237,9 @@ buildInstructionSet() {
     m_instructions[0xAF] = Instruction(0xAF, 3, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // BF nn nn  nz----  4*  LAX nnnn,X  LDA+LDX  A,X=[nnnn+X]
     cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), X()); };
-    workFunc    = [this] { 
-        const u8_byte& data = m_memory.byteAt(wordOperand() + Y()); 
+    readFunc    = read[AbsoluteX];
+    workFunc    = [this, readFunc] { 
+        u8_byte data = readFunc();
         setA(data);
         setX(data);
     };
@@ -1188,17 +1247,20 @@ buildInstructionSet() {
     m_instructions[0xBF] = Instruction(0xBF, 3, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // A3 nn     nz----  6   LAX (nn,X)  LDA+LDX  A,X=[WORD[nn+X]]
     cycleFunc   = [this] { return 6; };
-    workFunc    = [this] { 
-        const u8_byte& data = m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand() + X())); 
+    readFunc    = read[IndirectX];
+    workFunc    = [this, readFunc] { 
+        u8_byte data = readFunc();
         setA(data);
         setX(data);
     };
     disassemblyFunc = m_disassemblyFunctions["(Indirect,X)"];
     m_instructions[0xA3] = Instruction(0xA3, 2, "LAX", disassemblyFunc, cycleFunc, workFunc);
     // B3 nn     nz----  5*  LAX (nn),Y  LDA+LDX  A,X=[WORD[nn]+Y]
-    cycleFunc   = [this] { return 5 + crossesPageBoundary(m_memory.wordAtZeroPage(byteOperand()), Y()); };
-    workFunc    = [this] { 
-        const u8_byte& data = m_memory.byteAt(m_memory.wordAtZeroPage(byteOperand()) + Y());
+    boundaryFunc = m_boundaryFuncs[IndirectY];
+    cycleFunc   = [this, boundaryFunc] { return 5 + boundaryFunc(); };
+    readFunc    = read[IndirectY];
+    workFunc    = [this, readFunc] { 
+        u8_byte data = readFunc();
         setA(data);
         setX(data);
     };
@@ -1259,9 +1321,10 @@ buildInstructionSet() {
     m_instructions[0xEB]    = Instruction(0xEB, 2, "SBC", disassemblyFunc, cycleFunc, workFunc);
 
     // BB nn nn  nz----  4* LAS nnnn,Y       LDA+TSX  A,X,S = [nnnn+Y] AND S
-    cycleFunc               = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };
-    workFunc                = [this] { 
-        setA(m_memory.byteAt(wordOperand() + Y()) & S()); 
+    cycleFunc   = [this] { return 4 + crossesPageBoundary(wordOperand(), Y()); };
+    readFunc    = read[AbsoluteY];
+    workFunc    = [this, readFunc] { 
+        setA(readFunc() & S()); 
         setX(A());
         setS(A());
     };
@@ -1271,9 +1334,9 @@ buildInstructionSet() {
     // 93 nn     ------  6  AHX (nn),Y ((1))          [WORD[nn]+Y] = A AND X AND H
     cycleFunc               = [this] { return 6; };
     workFunc                = [this] { 
-        u16_word address = m_memory.wordAt(byteOperand()) + Y();
+        u16_word address = wordAt(byteOperand()) + Y();
         u8_byte h = (address & 0xFF00) >> 8;
-        setByte(m_memory.byteAt(address), A() & X() & h ); };
+        m_memory.write(m_memory.read(address), A() & X() & h ); };
     disassemblyFunc         = m_disassemblyFunctions["Immediate"];
     m_instructions[0x93]    = Instruction(0x93, 2, "AHX", disassemblyFunc, cycleFunc, workFunc);
 
@@ -1287,7 +1350,7 @@ buildInstructionSet() {
     workFunc                = [this] { 
         u16_word address = wordOperand() + Y();
         u8_byte h = (address & 0xFF00) >> 8;
-        setByte(m_memory.byteAt(address), A() & X() & h);  
+        m_memory.write(m_memory.read(address), A() & X() & h);  
     };
     disassemblyFunc         = m_disassemblyFunctions["Absolute,Y"];
     m_instructions[0x9F]    = Instruction(0x9F, 3, "AHX", disassemblyFunc, cycleFunc, workFunc);
@@ -1297,7 +1360,7 @@ buildInstructionSet() {
     workFunc                = [this] { 
         u16_word address = wordOperand() + X();
         u8_byte h = (address & 0xFF00) >> 8;
-        setByte(m_memory.byteAt(address), Y() & h);  
+        m_memory.write(m_memory.read(address), Y() & h);  
     };
     disassemblyFunc         = m_disassemblyFunctions["Absolute,X"];
     m_instructions[0x9C]    = Instruction(0x9C, 3, "SHY", disassemblyFunc, cycleFunc, workFunc);
@@ -1307,7 +1370,7 @@ buildInstructionSet() {
     workFunc                = [this] { 
         u16_word address = wordOperand() + Y();
         u8_byte h = (address & 0xFF00) >> 8;
-        setByte(m_memory.byteAt(address), X() & h);  
+        m_memory.write(m_memory.read(address), X() & h);  
     };
     disassemblyFunc         = m_disassemblyFunctions["Absolute,Y"];
     m_instructions[0x9E]    = Instruction(0x9E, 3, "SHX", disassemblyFunc, cycleFunc, workFunc);
@@ -1317,7 +1380,7 @@ buildInstructionSet() {
         u16_word address = wordOperand() + Y();
         u8_byte h = (address & 0xFF00) >> 8;
         setS(A() & X()); 
-        setByte(m_memory.byteAt(address), S() & h);
+        m_memory.write(m_memory.read(address), S() & h);
     };
     disassemblyFunc         = m_disassemblyFunctions["Absolute,Y"];
     m_instructions[0x9B]    = Instruction(0x9B, 3, "TAS", disassemblyFunc, cycleFunc, workFunc);
@@ -1364,7 +1427,6 @@ buildInstructionSet() {
     for (const u8_byte& opcode : {0x02, 0x12, 0x22, 0x32, 0x42, 0x52, 0x62, 0x72, 0x92, 0xB2, 0xD2, 0xF2}) {
         m_instructions[opcode] = Instruction(opcode, 3, "NOP", disassemblyFunc, cycleFunc, workFunc);
     }
-    */
 
     // Add all the 'illegal' opcodes to an easy to query set.
     for (const u8_byte& opcode : 
@@ -1405,19 +1467,28 @@ buildCombinedALUOpcodes()
 
     // Selects addressing mode.
 
-    /*
     std::function<void ()> workFunc;
 
     const u8_byte lowbitsArray[] = { 0x07, 0x17, 0x03, 0x13, 0x0F, 0x1F, 0x1B, 0x00 };
 
-    std::function<u8_byte&()> operandFuncs[] = {
-        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAtZeroPage(byteOperand()); }),                  // [nn]
-        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAtZeroPage(byteOperand() + X()); }),            // [nn+X]
-        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(m_memory.wordAt(byteOperand() + X())); }),   // [WORD[nn+X]]
-        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(m_memory.wordAt(byteOperand()) + Y()); }),   // [WORD[nn]+Y]
-        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(wordOperand()); }),                          // [nnnn]
-        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(wordOperand() + X()); }),                    // [nnnn+X]
-        std::function<u8_byte&()>([this]() -> u8_byte& { return m_memory.byteAt(wordOperand() + Y()); })                     // [nnnn+Y]
+    std::function<u8_byte()> readFuncs[] = {
+        m_readOperandFuncs[ZeroPage],
+        m_readOperandFuncs[ZeroPageX],
+        m_readOperandFuncs[IndirectX],
+        m_readOperandFuncs[IndirectY],
+        m_readOperandFuncs[Absolute],
+        m_readOperandFuncs[AbsoluteY],
+        m_readOperandFuncs[AbsoluteY]
+    };
+
+    std::function<void(u8_byte)> writeFuncs[] = {
+        m_writeOperandFuncs[ZeroPage],
+        m_writeOperandFuncs[ZeroPageX],
+        m_writeOperandFuncs[IndirectX],
+        m_writeOperandFuncs[IndirectY],
+        m_writeOperandFuncs[Absolute],
+        m_writeOperandFuncs[AbsoluteY],
+        m_writeOperandFuncs[AbsoluteY]
     };
 
     unsigned int lengths[] = {
@@ -1455,60 +1526,67 @@ buildCombinedALUOpcodes()
         // The low half selects how the operand is fetched.
         for (int i = 0; lowbitsArray[i] != 0x00; ++i) {
             u8_byte lowbits                         = lowbitsArray[i];
-            std::function<u8_byte&()> operandFunc   = operandFuncs[i];
+            auto readFunc                           = readFuncs[i];
+            auto writeFunc                          = writeFuncs[i];
             const char* mnemonic                    = NULL;
 
             switch (highbits) {
                 // 00+yy        nzc---  SLO op   ASL+ORA   op=op SHL 1 // A=A OR op
                 case 0x00:
-                    workFunc = [this, operandFunc] { 
-                        u8_byte& operand = operandFunc();
+                    workFunc = [this, readFunc, writeFunc] { 
+                        u8_byte operand = readFunc();
                         operand = shiftLeft(operand);
+                        writeFunc(operand);
                         setA(A() | operand); 
                     };
                     mnemonic = "SLO";
                     break;
                 // 20+yy        nzc---  RLA op   ROL+AND   op=op RCL 1 // A=A AND op
                 case 0x20:
-                    workFunc = [this, operandFunc] { 
-                        u8_byte& operand = operandFunc();
+                    workFunc = [this, readFunc, writeFunc] { 
+                        u8_byte operand = readFunc();
                         operand = rotateLeftThroughCarry(operand);
+                        writeFunc(operand);
                         setA(A() & operand); 
                     };
                     mnemonic = "RLA";
                     break;
                 // 40+yy        nzc---  SRE op   LSR+EOR   op=op SHR 1 // A=A XOR op
                 case 0x40:
-                    workFunc = [this, operandFunc] { 
-                        u8_byte& operand = operandFunc();
+                    workFunc = [this, readFunc, writeFunc] { 
+                        u8_byte operand = readFunc();
                         operand = shiftRight(operand);
+                        writeFunc(operand);
                         setA(A() ^ operand); 
                     };
                     mnemonic = "SRE";
                     break;
                 // 60+yy        nzc--v  RRA op   ROR+ADC   op=op RCR 1 // A=A ADC op
                 case 0x60:
-                    workFunc = [this, operandFunc] { 
-                        u8_byte& operand = operandFunc(); 
+                    workFunc = [this, readFunc, writeFunc] { 
+                        u8_byte operand = readFunc(); 
                         operand = rotateRightThroughCarry(operand);
+                        writeFunc(operand);
                         setA(additionWithCarry(A(), operand));
                     };
                     mnemonic = "RRA";
                     break;
                 // C0+yy        nzc---  DCP op   DEC+CMP   op=op-1     // A-op
                 case 0xC0:
-                    workFunc = [this, operandFunc] { 
-                        u8_byte& operand = operandFunc(); 
+                    workFunc = [this, readFunc, writeFunc] { 
+                        u8_byte operand = readFunc(); 
                         --operand;
+                        writeFunc(operand);
                         compare(A(), operand);
                     };
                     mnemonic = "DCP";
                     break;
                 // E0+yy        nzc--v  ISC op   INC+SBC   op=op+1     // A=A-op-(1-cy)
                 case 0xE0:
-                    workFunc = [this, operandFunc] { 
-                        u8_byte& operand = operandFunc();
+                    workFunc = [this, readFunc, writeFunc] { 
+                        u8_byte operand = readFunc();
                         ++operand;
+                        writeFunc(operand);
                         setA(subtractionWithBorrow(A(), operand)); 
                     };
                     mnemonic = "ISB";
@@ -1525,7 +1603,6 @@ buildCombinedALUOpcodes()
             m_instructions[opcode] = Instruction(opcode, lengths[i], mnemonic, disassemblyFuncs[i], cycleFuncs[i], workFunc);
         }
     }
-*/
 }
 
 
