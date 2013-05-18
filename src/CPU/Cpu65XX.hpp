@@ -116,11 +116,11 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         const std::string& getDebugOutput() const;
 
         // mutators
-        void    setA(const u8_byte&);
-        void    setX(const u8_byte&);
-        void    setY(const u8_byte&);
+        void    setA(u8_byte);
+        void    setX(u8_byte);
+        void    setY(u8_byte);
         void    setPC(const u16_word&);
-        void    setS(const u8_byte&);
+        void    setS(u8_byte);
         void    setStatusRegister(const StatusRegister&);
 
         u8_byte   byteOperand();
@@ -128,7 +128,7 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
 
         u16_word wordAt(const Memory::address_t address, bool indirect = false);
 
-        void    handleRegisterAssignmentFlags(const u8_byte&);
+        void    handleRegisterAssignmentFlags(u8_byte);
 
         u8_byte additionWithCarry(const u8_byte&, const u8_byte&);
         u8_byte subtractionWithBorrow(const u8_byte&, const u8_byte&);
@@ -140,11 +140,14 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
         u8_byte rotateLeftThroughCarry(const u8_byte&);
         u8_byte rotateRightThroughCarry(const u8_byte&);
 
-        void setByte(u8_byte&, const u8_byte&);
+        void write(Memory::address_t, u8_byte);
 
         void bitTest(const u8_byte&, const u8_byte&);
 
         void conditionalBranch(bool condition, const u8_byte&);
+
+        u8_byte increment(u8_byte);
+        u8_byte decrement(u8_byte);
 
         // Stack operations
         void pushStackByte(const u8_byte&);
