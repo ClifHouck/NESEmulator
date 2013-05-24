@@ -1761,7 +1761,6 @@ u16_word
 Cpu65XX::
 wordOperand() 
 {
-    // return m_memory.rawReadWord(PC() + 1);
     return wordAt(PC() + 1);
 }
 
@@ -2095,36 +2094,6 @@ powerOffImpl()
 {
     //TODO...
 }
-
-//FIXME: Consider what to do when the address is out-of-bounds.
-// Throw an expection? 
-
-// This routine correctly maps addresses to account for the memory mirroring
-// found in the CPU's memory map.
-#if 0
-u16_word
-Cpu65XX::Memory::
-trueAddress(const u16_word& address) const
-{
-    u16_word fixedAddress = address;
-    // The following three ranges are mirrors of 0x0000 - 0x07FF : 
-    // 0x0800 - 0x0FFF 
-    // 0x1000 - 0x17FF
-    // 0x1800 - 0x1FFF
-    if (address >= 0x0800 &&
-        address <  0x2000) {
-        fixedAddress = address % 0x0800;
-    }
-    // 0x2000 - 0x2007 Are the PPU registers
-    // 0x2000 - 0x3FFF Are the same PPU registers mapped over and over. Seems silly...
-    // TODO: Need to route memory access through PPU/APU/etc registers.
-    else if (address >= 0x2008 && 
-             address <  0x4000) {
-        fixedAddress = 0x2000 + (address % 0x0008);
-    }
-    return fixedAddress;
-}
-#endif
 
 u16_word
 Cpu65XX::
