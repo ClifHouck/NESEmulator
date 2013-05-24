@@ -96,23 +96,35 @@ isiNESFile() const
             m_banner[2] == 'S' &&
             m_banner[3] == 0x1A; 
 }
+
+unsigned int 
+iNESFile::numberOfPRGROMPages() const
+{
+    return m_PRGROMSize;
+}
         
 unsigned int 
 iNESFile::
 PRGROMDataSize() const
 {
-    return m_PRGROMSize * 16 * 1024;
+    return m_PRGROMSize * PRG_ROM_PAGE_SIZE;
+}
+
+unsigned int 
+iNESFile::numberOfCHRROMPages() const
+{
+    return m_CHRROMSize;
 }
 
 unsigned int 
 iNESFile::
 CHRROMDataSize() const
 {
-    return m_CHRROMSize * 8 * 1024;
+    return m_CHRROMSize * CHR_ROM_PAGE_SIZE;
 }
 
 // Flags 6
-unsigned int 
+iNESFile::MirrorType
 iNESFile::
 mirrorMode() const
 {

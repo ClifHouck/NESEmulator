@@ -10,9 +10,14 @@
 class iNESFile 
 {
     public:
-        static const unsigned int horizontalMirroring = 0;
-        static const unsigned int verticalMirroring   = 1;
-        static const unsigned int fourScreenMirroring = 2;
+        enum MirrorType {
+            horizontalMirroring = 0,
+            verticalMirroring   = 1,
+            fourScreenMirroring = 2
+        };
+
+        static const unsigned int PRG_ROM_PAGE_SIZE = 16 * 1024;
+        static const unsigned int CHR_ROM_PAGE_SIZE = 8  * 1024;
 
         iNESFile(const char* filename);
 
@@ -25,11 +30,13 @@ class iNESFile
 
         bool isiNESFile()                   const;
         
+        unsigned int numberOfPRGROMPages()  const;
         unsigned int PRGROMDataSize()       const;
+        unsigned int numberOfCHRROMPages()  const;
         unsigned int CHRROMDataSize()       const;
 
         // Flags 6
-        unsigned int mirrorMode()           const;
+        MirrorType   mirrorMode()           const;
         bool         batteryBackedSRAM()    const;
         bool         trainerPresent()       const;
 
