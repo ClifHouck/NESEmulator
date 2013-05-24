@@ -3,7 +3,7 @@
 #include <algorithm>
 
 PPU::
-PPU(Memory &cpuMemory, 
+PPU(Memory *cpuMemory, 
     Clock &clock) :
     PoweredDevice(this),
     ClockedDevice(clockDivisor),
@@ -22,8 +22,8 @@ PPU(Memory &cpuMemory,
     m_address       (m_isFirstWrite, m_control),
     m_data          (m_address, cpuMemory),
     m_bitmap        (),
-    m_spriteRAM     (spriteRamSize),
-    m_memory        (memorySize),
+    m_spriteRAM     (new BackedMemory(spriteStartAddress, spriteEndAddress)),
+    m_memory        (new BackedMemory(ppuStartAddress, ppuEndAddress)),
     m_registerBlock (*this)
 {
     std::fill(m_bitmap, m_bitmap + bitmapSize, 0.0);

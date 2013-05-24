@@ -10,9 +10,9 @@ add_executable(nesemu
 )
 
 target_link_libraries(nesemu 
+        Utility
         Cpu65XX 
         PPU 
-        Utility
         ${SDL_LIBRARY} 
         ${OPENGL_LIBRARIES}
 )

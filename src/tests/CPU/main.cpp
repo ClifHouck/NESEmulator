@@ -18,7 +18,7 @@ int main(int argc, char ** argv) {
               testRom.m_fileData + 16 + testRom.PRGROMDataSize(), 
               mappedData + 0xC000);
 
-    Memory memory(64 * 1024, mappedData);
+    BackedMemory memory(64 * 1024, mappedData);
     
     Cpu65XX cpu(memory);
 

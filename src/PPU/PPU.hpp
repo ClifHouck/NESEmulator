@@ -14,7 +14,7 @@
 class PPU : public PoweredDevice, public ClockedDevice
 {
 public:
-    PPU(Memory& memory,
+    PPU(Memory *cpuMemory,
         Clock& clock);
     ~PPU();
 
@@ -27,6 +27,12 @@ public:
     const static unsigned int spriteSize        = 4;
     const static unsigned int tileSize          = 16;
     const static unsigned int clockDivisor      = 4;
+
+    const static Memory::address_t ppuStartAddress  = 0x0000;
+    const static Memory::address_t ppuEndAddress    = 0x3FFF;
+
+    const static Memory::address_t spriteStartAddress = 0x0000;
+    const static Memory::address_t spriteEndAddress   = 0x00FF;
 
     const static u16_word CONTROL_ADDRESS           = 0x2000;
     const static u16_word MASK_ADDRESS              = 0x2001;
@@ -41,10 +47,11 @@ public:
     class RegisterBlock : public Memory 
     {
     public:
-        static const size_t registerBlockSize = 8;
+        static const address_t  baseAddress = 0x2000;
+        static const address_t  lastAddress = 0x3FFF;
 
         RegisterBlock(PPU &ppu) : 
-            Memory(registerBlockSize),
+            Memory(baseAddress, lastAddress),
             m_ppu (ppu)
         {}
 
@@ -188,7 +195,7 @@ private:
     class OAMData : public Register
     {
     public:
-        OAMData(Memory &spriteRAM,
+        OAMData(Memory *spriteRAM,
                 OAMAddress &address) :
             Register(StateData(0x00, 0x00, 0x00, 0x00)),
             m_spriteRAM (spriteRAM),
@@ -196,18 +203,18 @@ private:
         {}
 
         virtual u8_byte read() {
-            rawWrite(m_spriteRAM.read(m_address.address()));
+            rawWrite(m_spriteRAM->read(m_address.address()));
             return Register::read();
         }
 
         virtual void write(u8_byte data, u8_byte mask = 0xFF) {
             Register::write(data, mask);
-            m_spriteRAM.write(m_address.address(), rawRead());
+            m_spriteRAM->write(m_address.address(), rawRead());
             m_address.increment();
         }
 
     private:
-        Memory     &m_spriteRAM;
+        Memory     *m_spriteRAM;
         OAMAddress &m_address;
     };
 
@@ -299,7 +306,7 @@ private:
     {
     public:
         VRAMData(VRAMAddress &vramAddress,
-                 Memory& cpuMemory) :
+                 Memory *cpuMemory) :
             Register(StateData(0x00, 0x00, 0x00, 0x00)),
             m_vramAddress (vramAddress),
             m_cpuMemory (cpuMemory)
@@ -308,24 +315,24 @@ private:
 
         virtual u8_byte read() {
             // Load the data from CPU memory into this register.
-            Register::rawWrite(m_cpuMemory.read(m_vramAddress.address()));
+            Register::rawWrite(m_cpuMemory->read(m_vramAddress.address()));
             m_vramAddress.increment();
             return Register::read();
         }
         
         virtual void write(u8_byte data, u8_byte mask = 0xFF) {
-            u8_byte vramData = m_cpuMemory.read(m_vramAddress.address());
+            u8_byte vramData = m_cpuMemory->read(m_vramAddress.address());
             // Update the contents of this register.
             rawWrite(vramData);
             Register::write(data, mask);
             // Write back to the CPU's memory.
-            m_cpuMemory.write(m_vramAddress.address(), rawRead());
+            m_cpuMemory->write(m_vramAddress.address(), rawRead());
             m_vramAddress.increment();
         }
 
     private:
         VRAMAddress         &m_vramAddress;
-        Memory              &m_cpuMemory; 
+        Memory              *m_cpuMemory; 
     };
 
     class Tile
@@ -424,8 +431,8 @@ private:
     std::vector<Register*> m_registers;
 
     // PPU Memory
-    Memory  m_memory;
-    Memory  m_spriteRAM;
+    Memory  *m_memory;
+    Memory  *m_spriteRAM;
 
     // Rendering that we can display.
     float   m_bitmap[bitmapSize];

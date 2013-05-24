@@ -8,6 +8,8 @@
 #include "CPU/Cpu65XX.hpp"
 #include "PPU/PPU.hpp"
 
+#include <vector>
+
 class NES : public PoweredDevice
 {
 public:
@@ -17,10 +19,12 @@ public:
 
     static const unsigned int clockHertz = 21477270;
 
-    class MainMemory : public Memory 
+    class MainMemory : public Memory
     {
     public:
-        MainMemory(Memory &ppuRegisters);
+        MainMemory(Memory *ppuRegisters);
+
+        virtual ~MainMemory();
 
         static const Memory::size_t MAIN_MEMORY_SIZE    = 2 * 1024;
 
@@ -45,9 +49,12 @@ public:
         virtual data_t getData(address_t address);
         virtual void   setData(address_t address, data_t data);
 
-    private:
-        Memory &m_ppuRegisters;
-        //Memory &m_apuMemory;
+        address_t correctAddress(address_t address) const;
+
+        BackedMemory m_workRam;
+        BackedMemory m_apuRam;
+        BackedMemory m_cartridgeRam;
+        MappedMemory *m_mappedMemory;
     };
 
 protected:
@@ -56,10 +63,10 @@ protected:
     virtual void powerOffImpl();
 
 private:
-    MainMemory m_memory;
-    Cpu65XX m_cpu;
-    PPU     m_ppu;
-    Clock   m_clock;
+    MainMemory  m_memory;
+    Cpu65XX     m_cpu;
+    PPU         m_ppu;
+    Clock       m_clock;
 };
 
 #endif //NES_H
