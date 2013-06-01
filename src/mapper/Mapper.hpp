@@ -1,18 +1,30 @@
 #ifndef NES_MAPPER_H
 #define NES_MAPPER_H
 
+#include "utility/Memory.hpp"
+#include "IO/iNESFile.hpp"
+
 class Mapper 
 {
 public:
     Mapper();
 
-    //48k - roughly the size of the cartridge reserved area in the CPU memory map.
-    static const unsigned int CartdrigeSize = 48 * 1024; 
+    enum MapperNumber {
+        NROM = 0,
+        MMC1 = 1,
+        UNROM = 2,
+        CNROM = 3
+    };
 
-    unsigned int iNESNumber() const;
+    virtual Memory *cpuMemory() = 0;
+    virtual Memory *ppuMemory() = 0;
 
-private:
-    unsigned int    m_iNESNumber;
+    virtual const char* name() const = 0;
+
+    //Constructs and returns an appropriate Mapper for the supplied
+    //iNESFile argument.
+    //TODO: Used some sort of shared_ptr instead?
+    static Mapper* getMapper(iNESFile &file);
 };
 
 #endif //NES_MAPPER_H

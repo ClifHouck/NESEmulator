@@ -1,13 +1,22 @@
 #include "Mapper.hpp"
 
+#include "MMC1Mapper.hpp"
+
+#include <cassert>
+
 Mapper::
-Mapper() :
-    m_iNESNumber(0)
+Mapper()
 {}
 
-unsigned int
+Mapper*
 Mapper::
-iNESNumber() const
+getMapper(iNESFile &file)
 {
-    return m_iNESNumber;
+    switch (file.mapperNumber()) {
+        case MMC1:
+            return new MMC1Mapper(file);
+        default:
+            assert(false && "Unhandled mapper encountered!");
+    }
+    return nullptr;
 }
