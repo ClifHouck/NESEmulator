@@ -20,6 +20,8 @@ public:
     address_t   startAddress() const;
     address_t   endAddress()   const;
 
+    virtual void setAddressRange(address_t start, address_t end);
+
     // Checked reads and writes with debugging if needed.
     u8_byte     read(const address_t address);
     void        write(const address_t address, const data_t data);
@@ -55,9 +57,13 @@ public:
     BackedMemory(size_t size, data_t *initData);
     virtual ~BackedMemory();
 
+    virtual void setAddressRange(address_t begin, address_t end);
+
 protected:
     virtual data_t  getData(address_t address);
     virtual void    setData(address_t address, data_t data);
+
+    address_t correctedAddress(address_t address) const;
 
 private:
     u8_byte *m_backing;
@@ -70,11 +76,15 @@ public:
                  address_t endAddress,
                  std::vector<Memory*> segments);
 
+    void addSegment(Memory * segment);
+    void removeSegment(address_t address);
+
 protected:
     virtual data_t  getData(address_t address);
     virtual void    setData(address_t address, data_t data);
 
-    Memory*  findMemorySegment(address_t address);
+    Memory*                         findMemorySegment(address_t address);
+    std::vector<Memory*>::iterator  findMemorySegmentIterator(address_t address);
 
     std::vector<Memory*> m_segments;
 };
