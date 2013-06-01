@@ -1,7 +1,8 @@
 #include "iNESFile.hpp"
 
-#include <sstream>
+#include <cassert>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 iNESFile::
@@ -14,8 +15,7 @@ iNESFile(const char* filename) :
     m_flags9     (0),
     m_flags10     (0),
     m_filename   (filename),
-    m_inFile     (filename, std::ios::in | std::ios::binary),
-    m_fileData   (0)
+    m_fileData   (nullptr)
 {
     load();
 }
@@ -24,31 +24,33 @@ void
 iNESFile::
 load()
 {
-    if (m_fileData) {
+    if (m_fileData != nullptr) {
         delete[] m_fileData;
-        m_fileData = 0;
+        m_fileData = nullptr;
     }
 
-    if (m_inFile.is_open() &&
-        m_inFile.good()) {
+    std::ifstream inFile(m_filename, std::ios::in | std::ios::binary);
 
-        unsigned int begin = m_inFile.tellg();
-        m_inFile.seekg(0, std::ios::end);
-        unsigned int end = m_inFile.tellg();
+    if (inFile.is_open() &&
+        inFile.good()) {
+
+        unsigned int begin = inFile.tellg();
+        inFile.seekg(0, std::ios::end);
+        unsigned int end = inFile.tellg();
         m_fileSize = end - begin;
 
-        m_inFile.seekg(0, std::ios::beg);
+        inFile.seekg(0, std::ios::beg);
 
         // Load the data from the file.
-        // m_fileSize = m_inFile.tellg();
+        // m_fileSize = inFile.tellg();
         // Bail out if the file is too small.
-        if (m_fileSize < 16) {
+        if (m_fileSize < HEADER_SIZE) {
             return;
         }
 
         m_fileData = new char[m_fileSize];
-        m_inFile.read(m_fileData, m_fileSize);
-        m_inFile.close();
+        inFile.read(m_fileData, m_fileSize);
+        inFile.close();
 
         // Fill out the header elements;
         std::copy(m_fileData, m_fileData + 4, m_banner);
@@ -60,6 +62,7 @@ load()
         m_flags9     = m_fileData[9];
         m_flags10    = m_fileData[10];
     }
+    // TODO: Handle file read failure.
 }
 
 std::string 
@@ -198,4 +201,22 @@ iNESFile::
 PAL() const
 {
     return (m_flags9 & 0x01) != 0;
+}
+
+u8_byte*
+iNESFile::
+prgRomPage(unsigned int n)
+{
+    assert(n < numberOfPRGROMPages() && "Invalid PRG ROM page requested");
+    unsigned int offset = HEADER_SIZE + (trainerPresent() * TRAINER_SIZE) + (PRG_ROM_PAGE_SIZE * n);
+    return reinterpret_cast<u8_byte*>(&(m_fileData[offset]));
+}
+
+u8_byte*
+iNESFile::
+vromPage(unsigned int n)
+{
+    assert(n < numberOfCHRROMPages() && "Invalid CHR ROM page requested");
+    unsigned int offset = HEADER_SIZE + (trainerPresent() * TRAINER_SIZE) + (PRGROMDataSize()) + (CHR_ROM_PAGE_SIZE * n);
+    return reinterpret_cast<u8_byte*>(&(m_fileData[offset]));
 }

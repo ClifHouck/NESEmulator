@@ -1,3 +1,6 @@
+#ifndef INESFILE_H
+#define INESFILE_H
+
 /*
    Derived from http://wiki.nesdev.com/w/index.php/INES
 */
@@ -16,8 +19,10 @@ class iNESFile
             fourScreenMirroring = 2
         };
 
+        static const unsigned int HEADER_SIZE       = 16;
         static const unsigned int PRG_ROM_PAGE_SIZE = 16 * 1024;
         static const unsigned int CHR_ROM_PAGE_SIZE = 8  * 1024;
+        static const unsigned int TRAINER_SIZE      = 512;
 
         iNESFile(const char* filename);
 
@@ -54,9 +59,13 @@ class iNESFile
 
         // Flags 10
         // TODO...
-        char *          m_fileData;
+
+        // ROM pages
+        u8_byte* prgRomPage(unsigned int n);
+        u8_byte* vromPage(unsigned int n);
 
     private:
+        char *m_fileData;
         u8_byte m_banner[4];
         u8_byte m_PRGROMSize;
         u8_byte m_CHRROMSize;
@@ -67,6 +76,7 @@ class iNESFile
         u8_byte m_flags10;
 
         std::string     m_filename;
-        std::ifstream   m_inFile;
         unsigned int    m_fileSize;
 };
+
+#endif //INESFILE_H

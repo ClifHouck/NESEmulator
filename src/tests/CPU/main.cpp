@@ -11,11 +11,11 @@ int main(int argc, char ** argv) {
     iNESFile testRom("nestest.nes");
     u8_byte mappedData[64 * 1024];
 
-    std::copy(testRom.m_fileData + 16, 
-              testRom.m_fileData + 16 + testRom.PRGROMDataSize(), 
+    std::copy(testRom.prgRomPage(0),
+              testRom.prgRomPage(0) + testRom.PRGROMDataSize(), 
               mappedData + 0x8000);
-    std::copy(testRom.m_fileData + 16, 
-              testRom.m_fileData + 16 + testRom.PRGROMDataSize(), 
+    std::copy(testRom.prgRomPage(0), 
+              testRom.prgRomPage(0) + testRom.PRGROMDataSize(), 
               mappedData + 0xC000);
 
     BackedMemory memory(64 * 1024, mappedData);
