@@ -2,8 +2,29 @@
 #define CONTROLLER_IO_H
 
 #include "utility/DataTypes.hpp"
+#include "utility/Memory.hpp"
+#include "utility/Register.hpp"
 
 class Controller;
+
+class NESController
+{
+public:
+    NESController();
+
+    // TODO: Handle input from local host computer.
+
+    virtual u8_byte read() = 0;
+
+    // Out pins
+    virtual void signalClock() = 0;
+    virtual bool out0() = 0;
+
+    // In pins
+    virtual void in0(bool input) = 0;
+    virtual void in3(bool input) = 0;
+    virtual void in4(bool input) = 0;
+};
 
 class ControllerIO : public Memory
 {
@@ -60,26 +81,6 @@ private:
     JoypadInputRegister     m_joypadInputRegister0;
     JoypadInputRegister     m_joypadInputRegister1;
     JoypadOutputRegister    m_joypadOutputRegister; 
-};
-
-class NESController
-{
-public:
-    NESController();
-
-    // TODO: Handle input from local host computer.
-
-    virtual u8_byte read() = 0;
-
-protected:
-    // Out pins
-    virtual void signalClock() = 0;
-    virtual bool out0() = 0;
-
-    // In pins
-    virtual void in0(bool input) = 0;
-    virtual void in3(bool input) = 0;
-    virtual void in4(bool input) = 0;
 };
 
 class NESJoypad : public NESController 

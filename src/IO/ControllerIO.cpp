@@ -1,5 +1,7 @@
 #include "ControllerIO.hpp"
 
+#include <cassert>
+
 ControllerIO::
 ControllerIO() :
     Memory(CONTROLLER_IO_BEGIN_ADDRESS, CONTROLLER_IO_END_ADDRESS),
@@ -39,7 +41,7 @@ setController2(NESController *controller)
     m_controller2 = controller;
 }
 
-data_t  
+Memory::data_t  
 ControllerIO::
 getData(address_t address)
 {
@@ -87,6 +89,7 @@ u8_byte
 ControllerIO::JoypadInputRegister::
 read()
 {
+    assert(m_controller != nullptr && "JoypadInputRegister's m_controller member is nullptr!");
     u8_byte data = m_controller->read();
     m_controller->signalClock();
     return data;
@@ -111,13 +114,13 @@ read()
 {
     // The shift register starts returning 1s 
     // if all the data has been read.
-    if (goodbits == 0) {
+    if (m_goodbits == 0) {
         return 0x01;
     }
 
     u8_byte data = rawRead();
     rawWrite(data >> 1);
-    goodbits = goodbits >> 1;
+    m_goodbits = m_goodbits >> 1;
     return data & 0x01;
 }
 

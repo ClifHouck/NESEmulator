@@ -1,1 +1,4 @@
-add_library(iNESFile iNESFile.cpp)
+add_library(iNESFile 
+    ControllerIO.cpp
+    iNESFile.cpp
+)
