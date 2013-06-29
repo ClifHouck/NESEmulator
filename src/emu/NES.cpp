@@ -6,7 +6,9 @@ NES() :
     m_clock (clockHertz),
     m_cpu (m_memory),
     m_ppu (&m_memory, m_clock),
-    m_memory (&m_ppu.registerBlock())
+    m_controllerIO (),
+    m_memory (&m_ppu.registerBlock(),
+              &m_controllerIO)
 {
     m_clock.registerDevice(&m_cpu);
     m_clock.registerDevice(&m_ppu);
@@ -44,18 +46,23 @@ powerOffImpl()
 }
 
 NES::MainMemory::
-MainMemory(Memory *ppuRegisters) :
+MainMemory(Memory *ppuRegisters,
+           Memory *controllerIO) :
     Memory(WORK_RAM_BEGIN, CARTRIDGE_PRGROM_END),
     m_mappedMemory (nullptr),
     m_workRam (WORK_RAM_BEGIN, WORK_RAM_END),
     m_apuRam  (APU_REGISTERS_BEGIN, APU_REGISTERS_END),
     m_cartridgeRam (CARTRIDGE_EXPO_BEGIN, CARTRIDGE_PRGROM_END)
 {
+    assert(ppuRegisters != nullptr && "ppuRegisters is nullptr!");
+    assert(controllerIO != nullptr && "controllerIO is nullptr!");
+
     std::vector<Memory*> segments;
     segments.push_back(&m_workRam);
     segments.push_back(ppuRegisters);
     segments.push_back(&m_apuRam);
     segments.push_back(&m_cartridgeRam);
+    segments.push_back(controllerIO);
     m_mappedMemory = new MappedMemory(WORK_RAM_BEGIN, CARTRIDGE_PRGROM_END, segments);
     assert(m_mappedMemory != nullptr);
 }

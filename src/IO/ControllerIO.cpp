@@ -5,11 +5,12 @@
 ControllerIO::
 ControllerIO() :
     Memory(CONTROLLER_IO_BEGIN_ADDRESS, CONTROLLER_IO_END_ADDRESS),
+    //FIXME: Remove this nullptr nonsense.
     m_controller1(nullptr),
     m_controller2(nullptr),
     m_joypadInputRegister0(nullptr),
     m_joypadInputRegister1(nullptr),
-    m_joypadOutputRegister()
+    m_joypadOutputRegister(nullptr, nullptr)
 {
 }
 
@@ -32,6 +33,8 @@ ControllerIO::
 setController1(NESController *controller)
 {
     m_controller1 = controller;
+    m_joypadInputRegister0.setController(controller);
+    m_joypadOutputRegister.setController1(controller);
 }
 
 void 
@@ -39,6 +42,8 @@ ControllerIO::
 setController2(NESController *controller)
 {
     m_controller2 = controller;
+    m_joypadInputRegister1.setController(controller);
+    m_joypadOutputRegister.setController2(controller);
 }
 
 Memory::data_t  
@@ -101,12 +106,47 @@ NESJoypad() :
 {
 }
 
+NESJoypad::
+~NESJoypad()
+{}
+
+void 
+NESJoypad::
+pressed(Button button)
+{
+    assert(button != ButtonsCount && "Invalid button value passed: ButtonsCount");
+    m_pressed[button] = true;
+}
+
 void
 NESJoypad::
 signalClock()
 {
-    //TODO: Write current controller status to shift register.
+    u8_byte pressedStatus = 0x00;
+    int shiftAmount = 7;
+    // Build the status byte.
+    for (bool &is_pressed: m_pressed) { 
+        pressedStatus = is_pressed << shiftAmount;
+        // Clear the pressed status.
+        is_pressed = false; 
+        --shiftAmount;
+    }
+
+    m_shift.write(pressedStatus);
 }
+
+u8_byte
+NESJoypad::
+read()
+{
+    return m_shift.read();
+}
+
+NESJoypad::ShiftRegister::
+ShiftRegister() :
+    Register(Register::StateData(0x00, 0x00, 0x00, 0x00)),
+    m_goodbits (0x00)
+{}
 
 u8_byte
 NESJoypad::ShiftRegister::

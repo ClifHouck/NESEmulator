@@ -10,12 +10,12 @@ class Controller;
 class NESController
 {
 public:
-    NESController();
-
     // TODO: Handle input from local host computer.
 
     virtual u8_byte read() = 0;
+    virtual void signalClock() = 0;
 
+    /* TODO: Do we need a pin-level emulation? Probably not...
     // Out pins
     virtual void signalClock() = 0;
     virtual bool out0() = 0;
@@ -24,6 +24,7 @@ public:
     virtual void in0(bool input) = 0;
     virtual void in3(bool input) = 0;
     virtual void in4(bool input) = 0;
+    */
 };
 
 class ControllerIO : public Memory
@@ -68,9 +69,22 @@ private:
     public:
         static const u8_byte STROBE_MASK = 0x01;
 
-        JoypadOutputRegister();
+        JoypadOutputRegister(NESController * controller1, NESController * controller2) :
+            WriteOnlyRegister(Register::StateData(0x00, 0x00, 0x00, 0x00)),
+            m_controller1 (controller1),
+            m_controller2 (controller2)
+        {}
 
-        virtual void write(u8_byte data, u8_byte mask = 0xFF);
+        void setController1(NESController * controller) { m_controller1 = controller; }
+        void setController2(NESController * controller) { m_controller2 = controller; }
+
+        virtual void write(u8_byte data, u8_byte mask = 0xFF) {
+            //TODO: Handle output data to controllers and expansion port.
+        }
+
+    private:
+        NESController * m_controller1;
+        NESController * m_controller2;
     };
 
     // TODO: APU Low frequency timer control register.
@@ -91,7 +105,7 @@ public:
 
     // NOTE: This list in order of what buttons will be read
     // through the controller's shift register.
-    enum Buttons { 
+    enum Button { 
         ButtonA, 
         ButtonB, 
         Select, 
@@ -99,13 +113,17 @@ public:
         DirectionUp, 
         DirectionDown,
         DirectionLeft,
-        DirectionRight
+        DirectionRight,
+        ButtonsCount // ALWAYS last element of enum.
     };
+
+    void pressed(Button button);
 
     virtual void signalClock();
 
+    virtual u8_byte read();
+
 private:
-    // TODO: Generalize and move to Register.hpp
     class ShiftRegister : public Register
     {
     public:
@@ -117,6 +135,9 @@ private:
     private:
         u8_byte m_goodbits;
     };
+
+    ShiftRegister m_shift;
+    bool m_pressed[ButtonsCount];
 };
 
 #endif //CONTROLLER_IO_H

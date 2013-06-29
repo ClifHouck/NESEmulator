@@ -13,6 +13,7 @@ target_link_libraries(nesemu
         Utility
         Cpu65XX 
         PPU 
+        NESIO
         ${SDL_LIBRARY} 
         ${OPENGL_LIBRARIES}
 )

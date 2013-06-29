@@ -7,6 +7,7 @@
 #include "utility/Memory.hpp"
 #include "CPU/Cpu65XX.hpp"
 #include "PPU/PPU.hpp"
+#include "IO/ControllerIO.hpp"
 
 #include <vector>
 
@@ -22,7 +23,8 @@ public:
     class MainMemory : public Memory
     {
     public:
-        MainMemory(Memory *ppuRegisters);
+        MainMemory(Memory *ppuRegisters,
+                   Memory *controllerIO);
 
         virtual ~MainMemory();
 
@@ -63,10 +65,11 @@ protected:
     virtual void powerOffImpl();
 
 private:
-    MainMemory  m_memory;
-    Cpu65XX     m_cpu;
-    PPU         m_ppu;
-    Clock       m_clock;
+    MainMemory   m_memory;
+    Cpu65XX      m_cpu;
+    PPU          m_ppu;
+    Clock        m_clock;
+    ControllerIO m_controllerIO;
 };
 
 #endif //NES_H
