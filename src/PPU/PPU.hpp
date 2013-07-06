@@ -271,8 +271,8 @@ private:
         // http://wiki.nesdev.com/w/index.php/The_skinny_on_NES_scrolling
         static const u16_word COARSE_X_SCROLL_MASK  = 0x001F;
         static const u16_word COARSE_Y_SCROLL_MASK  = 0x03E0;
-        static const u16_word NAMETABLE_SELECT_MASK = 0x1C00;
-        static const u16_word FINE_Y_SCROLL_MASK    = 0xE000;
+        static const u16_word NAMETABLE_SELECT_MASK = 0x0C00;
+        static const u16_word FINE_Y_SCROLL_MASK    = 0x7000;
 
         VRAMAddress(bool &isFirstWrite,
                     PPUController &ppuController) :
@@ -447,7 +447,8 @@ private:
 
     // PPU VRAM Access Registers
     VRAMScroll      m_scroll;
-    VRAMAddress     m_address;
+    VRAMAddress     m_address;      // (v) in "The skinny on NES scrolling"
+    VRAMAddress     m_temp_address; // (t) in "The skinny on NES scrolling"
     VRAMData        m_data;
 
     RegisterBlock   m_registerBlock;
