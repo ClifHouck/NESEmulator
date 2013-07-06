@@ -1,12 +1,14 @@
 #include "Palette.hpp"
 
+#include <cassert>
+
 Palette::
 Palette(u8_byte value) :
     m_value (value)
 {
     u8_byte luminance   = (value & LUMINANCE_MASK) >> LUMINANCE_SHIFT;
     u8_byte chrominance = (value & CHROMINANCE_MASK); 
-    m_color = &(colors[luminance][chrominance]);
+    m_color = getColor(luminance, chrominance);
 }
 
 Palette::Color
@@ -48,7 +50,7 @@ blue() const
 // From http://www.thealmightyguru.com/Games/Hacking/Wiki/index.php?title=NES_Palette
 // The array is laid out like the following:
 // colors[luminance][chrominance]
-const Palette::Color Palette::colors[4][16] = {
+const Palette::Color Palette::colors[MAX_LUMINANCE][MAX_CHROMINANCE] = {
     {
         Color(0x7C, 0x7C, 0x7C),
         Color(0x00, 0x00, 0xFC),
@@ -134,3 +136,12 @@ const Palette::Color Palette::colors[4][16] = {
         Color(0x00, 0x00, 0x00),
     }
 };
+
+const Palette::Color*
+Palette::
+getColor(u8_byte luminance, u8_byte chrominance)
+{
+    assert(luminance < MAX_LUMINANCE && "Improper luminance fed to Palette::getColor!");
+    assert(chrominance < MAX_CHROMINANCE && "Improper chrominance fed to Palette::getColor!");
+    return &(Palette::colors[luminance][chrominance]);
+}
