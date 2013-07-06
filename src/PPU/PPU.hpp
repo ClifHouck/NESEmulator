@@ -263,9 +263,17 @@ private:
         bool   &m_isFirstWrite;
     };
 
+    // (v) register
     class VRAMAddress : public WriteOnlyRegister
     {
     public:
+        // Breakdown of register bits taken from:
+        // http://wiki.nesdev.com/w/index.php/The_skinny_on_NES_scrolling
+        static const u16_word COARSE_X_SCROLL_MASK  = 0x001F;
+        static const u16_word COARSE_Y_SCROLL_MASK  = 0x03E0;
+        static const u16_word NAMETABLE_SELECT_MASK = 0x1C00;
+        static const u16_word FINE_Y_SCROLL_MASK    = 0xE000;
+
         VRAMAddress(bool &isFirstWrite,
                     PPUController &ppuController) :
             WriteOnlyRegister(StateData(0x00, 0x00, 0x00, 0xFF)),
@@ -276,17 +284,35 @@ private:
         {}
         ~VRAMAddress() {}
 
+        u8_byte coarseXScroll() const {
+            return address() & COARSE_X_SCROLL_MASK;
+        }
+
+        u8_byte coarseYScroll() const {
+            return (address() & COARSE_Y_SCROLL_MASK) >> 5; 
+        }
+
+        u8_byte nametableSelect() const {
+            return (address() & NAMETABLE_SELECT_MASK) >> 10;
+        }
+
+        u8_byte fineYScroll() const {
+            return (address() & FINE_Y_SCROLL_MASK) >> 12;
+        }
+
         u16_word address() const {
-            return (m_highByte * 0x100) + m_lowByte;
+            return m_address;
         }
 
         virtual void write(u8_byte data, u8_byte mask = 0xFF) {
             WriteOnlyRegister::write(data, mask);
             if (m_isFirstWrite) {
                 m_highByte = rawRead();
+                m_address  = (m_highByte * 0x100) | (m_address & 0x00FF);
             }
             else {
                 m_lowByte = rawRead();
+                m_address = (m_address & 0xFF00) | m_lowByte;
             }
             m_isFirstWrite = !m_isFirstWrite;
         }
@@ -300,6 +326,7 @@ private:
         bool           &m_isFirstWrite;
         u8_byte         m_highByte;
         u8_byte         m_lowByte;
+        u16_word        m_address;
     };
 
     class VRAMData : public Register 
