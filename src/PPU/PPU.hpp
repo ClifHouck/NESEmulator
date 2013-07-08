@@ -84,7 +84,7 @@ protected:
         
 private:
 
-    class PPUController : public ReadOnlyRegister
+    class PPUController : public WriteOnlyRegister
     {
     public:
         PPUController() :
@@ -448,7 +448,7 @@ private:
     // PPU VRAM Access Registers
     VRAMScroll      m_scroll;
     VRAMAddress     m_address;      // (v) in "The skinny on NES scrolling"
-    VRAMAddress     m_temp_address; // (t) in "The skinny on NES scrolling"
+    //VRAMAddress     m_temp_address; // (t) in "The skinny on NES scrolling"
     VRAMData        m_data;
 
     RegisterBlock   m_registerBlock;
