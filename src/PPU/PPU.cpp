@@ -52,8 +52,11 @@ tick()
 {
     // Y-coordinate basically.
     m_currentScanline = (m_clock.count() / ticksPerScanline) - 1;
+
     // Don't draw -1 scanline...
-    if (m_currentScanline < 0) { return; }
+    // FIXME: Line below is incorrect.
+    // if (m_currentScanline < 0) { return; }
+
     // X-coordinate basically.
     m_currentCycle    =  m_clock.count() % ticksPerScanline;
 }

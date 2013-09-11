@@ -1079,36 +1079,52 @@ buildInstructionSet() {
     };
 
     // 10 dd     ------  2** BPL disp    Branch on result plus     if N=0 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(!m_status.negative(), byteOperand()); };
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(!m_status.negative(), byteOperand()); 
+    };
     workFunc    = [this] { conditionalBranch(!m_status.negative(), byteOperand()); };
     disassemblyFunc = m_disassemblyFunctions["Branch"];
     m_instructions[0x10] = Instruction(0x10, 2, "BPL", disassemblyFunc, cycleFunc, workFunc);
     // 30 dd     ------  2** BMI disp    Branch on result minus    if N=1 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(m_status.negative(), byteOperand()); }; 
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(m_status.negative(), byteOperand()); 
+    }; 
     workFunc    = [this] { conditionalBranch(m_status.negative(), byteOperand()); };
     m_instructions[0x30] = Instruction(0x30, 2, "BMI", disassemblyFunc, cycleFunc, workFunc);
     // 50 dd     ------  2** BVC disp    Branch on overflow clear  if V=0 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(!m_status.overflow(), byteOperand()); };
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(!m_status.overflow(), byteOperand()); 
+    };
     workFunc    = [this] { conditionalBranch(!m_status.overflow(), byteOperand()); };
     m_instructions[0x50] = Instruction(0x50, 2, "BVC", disassemblyFunc, cycleFunc, workFunc);
     // 70 dd     ------  2** BVS disp    Branch on overflow set    if V=1 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(m_status.overflow(), byteOperand()); };
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(m_status.overflow(), byteOperand()); 
+    };
     workFunc    = [this] { conditionalBranch(m_status.overflow(), byteOperand()); };
     m_instructions[0x70] = Instruction(0x70, 2, "BVS", disassemblyFunc, cycleFunc, workFunc);
     // 90 dd     ------  2** BCC disp    Branch on carry clear     if C=0 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(!m_status.carry(), byteOperand()); };
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(!m_status.carry(), byteOperand()); 
+    };
     workFunc    = [this] { conditionalBranch(!m_status.carry(), byteOperand()); };
     m_instructions[0x90] = Instruction(0x90, 2, "BCC", disassemblyFunc, cycleFunc, workFunc);
     // B0 dd     ------  2** BCS disp    Branch on carry set       if C=1 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(m_status.carry(), byteOperand()); };
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(m_status.carry(), byteOperand()); 
+    };
     workFunc    = [this] { conditionalBranch(m_status.carry(), byteOperand()); };
     m_instructions[0xB0] = Instruction(0xB0, 2, "BCS", disassemblyFunc, cycleFunc, workFunc);
     // D0 dd     ------  2** BNE disp    Branch on result not zero if Z=0 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(!m_status.zero(), byteOperand()); };
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(!m_status.zero(), byteOperand()); 
+    };
     workFunc    = [this] { conditionalBranch(!m_status.zero(), byteOperand()); };
     m_instructions[0xD0] = Instruction(0xD0, 2, "BNE", disassemblyFunc, cycleFunc, workFunc);
     // F0 dd     ------  2** BEQ disp    Branch on result zero     if Z=1 PC=PC+/-nn
-    cycleFunc   = [=, this] { return conditionalBranchCycleFunc(m_status.zero(), byteOperand()); };
+    cycleFunc   = [this, conditionalBranchCycleFunc] { 
+        return conditionalBranchCycleFunc(m_status.zero(), byteOperand()); 
+    };
     workFunc    = [this] { conditionalBranch(m_status.zero(), byteOperand()); };
     m_instructions[0xF0] = Instruction(0xF0, 2, "BEQ", disassemblyFunc, cycleFunc, workFunc);
 

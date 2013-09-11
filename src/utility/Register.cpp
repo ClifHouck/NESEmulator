@@ -105,4 +105,5 @@ read()
 {
     // TODO log a warning message that an attempt was made to read a 
     // write only register
+    return 0x00;
 }

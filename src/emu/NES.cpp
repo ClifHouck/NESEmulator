@@ -82,6 +82,7 @@ correctAddress(address_t address) const
         address <= WORK_RAM_MIRROR_END) {
         return address % WORK_RAM_SIZE;
     }
+    return address;
 }
 
 NES::MainMemory::data_t

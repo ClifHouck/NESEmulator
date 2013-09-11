@@ -191,6 +191,8 @@ selectRegister(address_t address)
             address <= PRGROM_BANK_SELECT_RANGE_END) {
         return &m_parentMapper.m_prgromSelect;
     }
+    assert(false && "MMC1Mapper::selectRegister: the address passed doesn't select any register!");
+    return &m_parentMapper.m_prgromSelect;
 }
 
 void
@@ -262,7 +264,7 @@ MMC1Mapper::ConfigurationRegister::NameTableMirroringType
 MMC1Mapper::ConfigurationRegister::
 mirroringType() const
 {
-    switch (rawRead())
+    switch (rawRead() & NAME_TABLE_MIRRORING_MASK)
     {
         case 0:
             return SingleScreenBlk0;
@@ -276,6 +278,9 @@ mirroringType() const
         case 3:
             return TwoScreenHorizontalMirroring;
             break;
+        default:
+            assert(false && "MMC1Mapper::ConfigurationRegister::mirroringType: This should never happen!");
+            return SingleScreenBlk0;         
     }
 }
 
@@ -298,6 +303,9 @@ prgSwitchingMode() const
         case 3:
             return Switchable16kAreaAt8000h;
             break;
+        default:
+            assert(false && "MMC1Mapper::ConfigurationRegister::prgSwitchingMode: This should never happen!");
+            return Switchable32kArea0;
     }
 }
 

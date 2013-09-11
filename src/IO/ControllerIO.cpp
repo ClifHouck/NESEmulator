@@ -59,6 +59,8 @@ getData(address_t address)
             return m_joypadInputRegister1.read();
             break;
     };
+    // TODO : Report bad access.
+    return 0x00;
 }
 
 void    

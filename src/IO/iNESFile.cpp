@@ -174,7 +174,7 @@ unsigned int
 iNESFile::
 headerVersion() const
 {
-    if (m_flags7 & 0x0C == 0x08) {
+    if ((m_flags7 & 0x0C) == 0x08) {
         return 2;
     }
     return 1;
