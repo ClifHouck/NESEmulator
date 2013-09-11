@@ -1,0 +1,11 @@
+# Cmake Generated Files
+Makefile
+cmake_install*cmake
+CMakeFiles
+CTest*cmake
+
+# Vi swap files
+*.swp
+
+# Binary files
+*.a
