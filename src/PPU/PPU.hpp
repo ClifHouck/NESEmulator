@@ -88,7 +88,7 @@ private:
     {
     public:
         PPUController() :
-            ReadOnlyRegister(StateData(0x00, 0x00, 0x00, 0x00))
+            WriteOnlyRegister(StateData(0x00, 0x00, 0x00, 0x00))
         {}
         ~PPUController() {}
 
@@ -374,8 +374,8 @@ private:
         static const unsigned int byteSize   = 16;
 
         u8_byte color(unsigned int x, unsigned int y) const {
-            assert(0 <= x < sideLength);
-            assert(0 <= y < sideLength);
+            assert(0 <= x && x < sideLength);
+            assert(0 <= y && y < sideLength);
 
             bool bit0 = m_backing[x] & (0x01 << y);
             bool bit1 = m_backing[sideLength + x] & (0x01 << y);
