@@ -3,4 +3,6 @@ add_library(Utility
     PoweredDevice.cpp
     Clock.cpp
     Memory.cpp
+    Commandable.cpp
+    Console.cpp
 )

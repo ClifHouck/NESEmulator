@@ -8,9 +8,7 @@ PoweredDevice(PoweredDevice *owner, State state) :
     m_poweredDeviceOwner (owner),
     m_powerState (state)
 {
-    // FIXME: For some reason clang is choking on the use of nullptr here.
-    // assert(owner != nullptr);
-    assert(owner != 0);
+    assert(owner != nullptr);
 }
 
 void 
