@@ -2,15 +2,16 @@
 #define REGISTER_H
 
 #include "DataTypes.hpp"
-
 #include "PoweredDevice.hpp"
+#include "Commandable.hpp"
 
-class Register : public PoweredDevice
+class Register : public PoweredDevice, public Commandable
 {
 public:
     struct StateData
     {
-        StateData(u8_byte powerOnData,
+        StateData(std::string name,
+                  u8_byte powerOnData,
                   u8_byte resetData,
                   u8_byte readOnlyMask,
                   u8_byte resetMask) :
@@ -20,10 +21,11 @@ public:
             m_resetMask (resetMask) 
         {}
 
-        u8_byte m_powerOnData;
-        u8_byte m_resetData;
-        u8_byte m_readOnlyMask;
-        u8_byte m_resetMask;
+        std::string m_name;
+        u8_byte     m_powerOnData;
+        u8_byte     m_resetData;
+        u8_byte     m_readOnlyMask;
+        u8_byte     m_resetMask;
     };
 
     Register(StateData data);
@@ -36,8 +38,11 @@ public:
     virtual u8_byte read();
     virtual void    write(u8_byte data, u8_byte mask = 0xFF);
 
-protected:
+    // Interface for Commandable.
+    virtual CommandResult                  recieveCommand(CommandInput input);
+    virtual std::string                    typeName() { return std::string("Register"); }
 
+protected:
     // Ignores rules like read-only masks and returns the raw data found in the backing store.
     // Use with caution.
     u8_byte rawRead() const;
@@ -49,6 +54,8 @@ protected:
     void powerOffImpl();
 
 private:
+    void registerCommands();
+
     u8_byte &m_data;
     u8_byte m_resetData;
     u8_byte m_readOnlyMask;

@@ -88,14 +88,14 @@ private:
     {
     public:
         PPUController() :
-            WriteOnlyRegister(StateData(0x00, 0x00, 0x00, 0x00))
+            WriteOnlyRegister(StateData("ppu_controller", 0x00, 0x00, 0x00, 0x00))
         {}
         ~PPUController() {}
 
         static const u8_byte BASE_NAMETABLE_ADDRESS_MASK            = 0x03;
         static const u8_byte VRAM_ADDRESS_INCREMENT_MASK            = 0x04;
         static const u8_byte SPRITE_PATTERN_TABLE_ADDRESS_MASK      = 0x08;
-        static const u8_byte BACKGROUND_PATTERN_TABLE__ADDRESS_MASK = 0x10;
+        static const u8_byte BACKGROUND_PATTERN_TABLE_ADDRESS_MASK  = 0x10;
         static const u8_byte SPRITE_SIZE_MASK                       = 0x20;
         static const u8_byte MASTER_SLAVE_SELECT_MASK               = 0x40;
         static const u8_byte GENERATE_NMI_MASK                      = 0x80;
@@ -116,7 +116,7 @@ private:
             return ((rawRead() & SPRITE_PATTERN_TABLE_ADDRESS_MASK) != 0) * 0x1000; 
         }
         u16_word backgroundPatternTableAddress() const {
-            return ((rawRead() & BACKGROUND_PATTERN_TABLE__ADDRESS_MASK) != 0) * 0x1000;
+            return ((rawRead() & BACKGROUND_PATTERN_TABLE_ADDRESS_MASK) != 0) * 0x1000;
         }
         std::pair<unsigned int, unsigned int> spriteSize() const {
             return std::pair<unsigned int, unsigned int>(8, 8 + (8 * (rawRead() & SPRITE_SIZE_MASK)));
@@ -129,7 +129,7 @@ private:
     {
     public:
         PPUMask() :
-            Register(StateData(0x00, 0x00, 0x00, 0x00))
+            Register(StateData("ppu_mask", 0x00, 0x00, 0x00, 0x00))
         {}
         ~PPUMask() {}
 
@@ -155,7 +155,7 @@ private:
     class PPUStatus : public Register {
     public:
         PPUStatus(bool &isFirstWrite) :
-            Register(StateData(0xA0, 0x00, 0x00, 0x80)),
+            Register(StateData("ppu_status", 0xA0, 0x00, 0x00, 0x80)),
             m_isFirstWrite (isFirstWrite)
         {}
         ~PPUStatus() {}
@@ -183,7 +183,7 @@ private:
     {
     public:
         OAMAddress() :
-            WriteOnlyRegister(StateData(0x00, 0x00, 0x00, 0xFF))
+            WriteOnlyRegister(StateData("oam_address", 0x00, 0x00, 0x00, 0xFF))
         {}
         ~OAMAddress() {}
 
@@ -197,7 +197,7 @@ private:
     public:
         OAMData(Memory *spriteRAM,
                 OAMAddress &address) :
-            Register(StateData(0x00, 0x00, 0x00, 0x00)),
+            Register(StateData("oam_data", 0x00, 0x00, 0x00, 0x00)),
             m_spriteRAM (spriteRAM),
             m_address(address)
         {}
@@ -222,7 +222,7 @@ private:
     {
     public:
         OAMDMA() :
-            WriteOnlyRegister(StateData(0x00, 0x00, 0x00, 0x00))
+            WriteOnlyRegister(StateData("oam_dma", 0x00, 0x00, 0x00, 0x00))
         {}
         ~OAMDMA() {}
 
@@ -233,7 +233,7 @@ private:
     {
     public:
         VRAMScroll(bool &isFirstWrite) :
-            WriteOnlyRegister(StateData(0x00, 0x00, 0x00, 0xFF)),
+            WriteOnlyRegister(StateData("vram_scroll", 0x00, 0x00, 0x00, 0xFF)),
             m_isFirstWrite (isFirstWrite)
         {}
         ~VRAMScroll() {}
@@ -276,7 +276,7 @@ private:
 
         VRAMAddress(bool &isFirstWrite,
                     PPUController &ppuController) :
-            WriteOnlyRegister(StateData(0x00, 0x00, 0x00, 0xFF)),
+            WriteOnlyRegister(StateData("vram_address", 0x00, 0x00, 0x00, 0xFF)),
             m_isFirstWrite (isFirstWrite),
             m_ppuController (ppuController),
             m_highByte (0x00),
@@ -334,7 +334,7 @@ private:
     public:
         VRAMData(VRAMAddress &vramAddress,
                  Memory *cpuMemory) :
-            Register(StateData(0x00, 0x00, 0x00, 0x00)),
+            Register(StateData("vram_data", 0x00, 0x00, 0x00, 0x00)),
             m_vramAddress (vramAddress),
             m_cpuMemory (cpuMemory)
         {}

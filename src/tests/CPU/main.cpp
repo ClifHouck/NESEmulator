@@ -2,6 +2,7 @@
 #include "CPU/Cpu65XX.hpp"
 #include "utility/DataTypes.hpp"
 #include "utility/Memory.hpp"
+#include "utility/Logger.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -29,13 +30,15 @@ int main(int argc, char ** argv) {
 
     unsigned int lastDownCount = 0;
 
+    Logger* logger = Logger::get_instance();
+
     // Run the test ROM.
     while(1) {
         cpu.tick();
 
         unsigned int currentDownCycles = cpu.downCycles();
         if (cpu.downCycles() > lastDownCount) {
-            std::cout << cpu.lastInstructionDebugOut();
+            *logger << cpu.lastInstructionDebugOut();
         }
         lastDownCount = currentDownCycles;
 

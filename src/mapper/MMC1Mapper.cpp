@@ -225,7 +225,7 @@ write(address_t address, u8_byte data)
 
 MMC1Mapper::ShiftRegister::
 ShiftRegister() :
-    Register(StateData(0x00, 0x00, 0x00, 0x00)),
+    Register(StateData("mmc1_shift_register", 0x00, 0x00, 0x00, 0x00)),
     m_writeNum (0)
 {}
 
@@ -257,7 +257,7 @@ full()
 
 MMC1Mapper::ConfigurationRegister::
 ConfigurationRegister() :
-    Register (StateData(0x00, 0x00, 0x00, 0x00))
+    Register (StateData("mmc1_config", 0x00, 0x00, 0x00, 0x00))
 {}
 
 MMC1Mapper::ConfigurationRegister::NameTableMirroringType 

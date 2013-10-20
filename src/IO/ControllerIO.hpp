@@ -54,7 +54,7 @@ private:
     class JoypadInputRegister : public ReadOnlyRegister
     {
     public:
-        JoypadInputRegister(NESController * controller);
+        JoypadInputRegister(std::string name, NESController * controller);
 
         void setController(NESController *controller);
 
@@ -70,7 +70,7 @@ private:
         static const u8_byte STROBE_MASK = 0x01;
 
         JoypadOutputRegister(NESController * controller1, NESController * controller2) :
-            WriteOnlyRegister(Register::StateData(0x00, 0x00, 0x00, 0x00)),
+            WriteOnlyRegister(Register::StateData("joypad_out", 0x00, 0x00, 0x00, 0x00)),
             m_controller1 (controller1),
             m_controller2 (controller2)
         {}

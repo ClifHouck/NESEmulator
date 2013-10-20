@@ -5,6 +5,11 @@
 #include <vector>
 #include <map>
 
+#include <limits.h>
+
+typedef unsigned int CommandCode;
+const CommandCode UNRECOGNIZED_COMMAND = UINT_MAX;
+
 struct CommandResult
 {
     enum ResultCode { OK, WARNING, ERROR, INVALID_ARGUMENT, WRONG_NUM_ARGS, NO_RECIEVER }; 
@@ -19,7 +24,15 @@ struct Command
 {
     std::string m_keyword;
     std::string m_helpText;
+    CommandCode m_code;
     int         m_numArguments;
+};
+
+struct CommandInput
+{
+    std::string              m_keyword;
+    CommandCode              m_code;
+    std::vector<std::string> m_arguments;
 };
 
 class Commandable
@@ -27,13 +40,24 @@ class Commandable
 public:
     Commandable(std::string name);
 
-    virtual std::vector<Command> commands() = 0;
-    virtual CommandResult        recieveCommand(const std::string& input) = 0;
+    typedef std::map<CommandCode, Command>      CommandMapType;
+    typedef std::map<std::string, CommandCode>  TranslationMapType;
+
+    virtual CommandResult        recieveCommand(CommandInput command) = 0;
+    virtual std::string          typeName() = 0;
+
+    CommandMapType  commands();
+    CommandCode translate(std::string keyword);
     std::string name() const;
-    void        setName(std::string name);
+
+protected:
+    void setName(std::string name);
+    void addCommand(Command command);
 
 private:
-    std::string m_name;
+    CommandMapType      m_commands;
+    TranslationMapType  m_translation;
+    std::string         m_name;
 };
 
 class CommandDispatcher
@@ -44,8 +68,13 @@ public:
     bool          removeObject(Commandable* object);
 
 private:
-    typedef std::map<std::string, Commandable*> MapType;
-    MapType m_objects;
+    std::vector<std::string> parseArguments(std::string input);
+
+    typedef std::map<std::string, Commandable*> ObjectMapType;
+    // Maps types to their command maps...
+    typedef std::map<std::string, std::map<CommandCode, Command>> CommandMapType;
+    CommandMapType m_commands;
+    ObjectMapType  m_objects;
 };
 
 #endif //COMMANDABLE_H

@@ -118,7 +118,7 @@ private:
         static const u8_byte VROM_BANK_SELECT_MASK = 0x1F;
 
         VROMSelectRegister() :
-            Register (StateData(0x00, 0x00, 0x00, 0x00))
+            Register (StateData("mmc1_vrom_select", 0x00, 0x00, 0x00, 0x00))
         {}
 
         virtual ~VROMSelectRegister() {}
@@ -135,7 +135,7 @@ private:
         static const u8_byte RAM_DISABLE_MASK     = 0x10;
 
         PRGROMSelectRegister() :
-            Register (StateData(0x00, 0x00, 0x00, 0x00))
+            Register (StateData("mmc1_pgrom_select", 0x00, 0x00, 0x00, 0x00))
         {}
         virtual ~PRGROMSelectRegister() {}
 

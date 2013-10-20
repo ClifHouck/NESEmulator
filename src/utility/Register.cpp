@@ -1,8 +1,14 @@
 #include "Register.hpp"
 
+#include <sstream>
+
+CommandCode READ_COMMAND_CODE   = 0;
+CommandCode WRITE_COMMAND_CODE  = 1;
+
 Register::
 Register(StateData data) :     
     PoweredDevice(this),
+    Commandable(data.m_name),
     m_data (m_localBacking),
     m_resetData (data.m_resetData),
     m_readOnlyMask (data.m_readOnlyMask),
@@ -10,12 +16,14 @@ Register(StateData data) :
     m_powerOnData (data.m_powerOnData),
     m_localBacking (data.m_powerOnData)
 {
+    registerCommands();
 }
 
 Register::
 Register(u8_byte *backing,
          StateData data) :
     PoweredDevice(this),
+    Commandable(data.m_name),
     m_data (*backing),
     m_resetData (data.m_resetData),
     m_readOnlyMask (data.m_readOnlyMask),
@@ -23,6 +31,7 @@ Register(u8_byte *backing,
     m_powerOnData (data.m_powerOnData)
 {
     m_data = data.m_powerOnData;
+    registerCommands();
 }
 
 u8_byte 
@@ -49,6 +58,47 @@ Register::
 rawRead() const
 {
     return m_data;
+}
+
+void 
+Register::
+registerCommands()
+{
+    Command read;
+    read.m_keyword = "read";
+    read.m_code    = READ_COMMAND_CODE;
+    read.m_helpText = "Print the current value of the register.";
+    read.m_numArguments = 0;
+    addCommand(read);
+
+    Command write;
+    write.m_keyword = "write";
+    write.m_code    = WRITE_COMMAND_CODE;
+    write.m_helpText = "Write an 8-bit hexadecimal value to the register.";
+    write.m_numArguments = 1;
+    addCommand(write);
+}
+
+CommandResult        
+Register::
+recieveCommand(CommandInput input)
+{
+    CommandResult result;
+    result.m_code = CommandResult::ResultCode::NO_RECIEVER;
+    switch (input.m_code) {
+        READ_COMMAND_CODE:
+        {
+            std::stringstream output;    
+            output << "0x" << std::hex << rawRead();
+            result.m_output = output.str();
+            result.m_code   = CommandResult::ResultCode::OK;
+        }
+        break;
+        WRITE_COMMAND_CODE:
+        //TODO...
+        break;
+    }
+    return result;
 }
 
 void    

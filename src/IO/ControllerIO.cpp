@@ -8,8 +8,8 @@ ControllerIO() :
     //FIXME: Remove this nullptr nonsense.
     m_controller1(nullptr),
     m_controller2(nullptr),
-    m_joypadInputRegister0(nullptr),
-    m_joypadInputRegister1(nullptr),
+    m_joypadInputRegister0("joypad1_input", nullptr),
+    m_joypadInputRegister1("joypad2_input", nullptr),
     m_joypadOutputRegister(nullptr, nullptr)
 {
 }
@@ -79,8 +79,8 @@ setData(address_t address, data_t data)
 }
 
 ControllerIO::JoypadInputRegister::
-JoypadInputRegister(NESController *controller) :
-    ReadOnlyRegister(StateData(0x00, 0x00, 0x00, 0x00)),
+JoypadInputRegister(std::string name, NESController *controller) :
+    ReadOnlyRegister(StateData(name, 0x00, 0x00, 0x00, 0x00)),
     m_controller (controller)
 {
 }
@@ -146,7 +146,7 @@ read()
 
 NESJoypad::ShiftRegister::
 ShiftRegister() :
-    Register(Register::StateData(0x00, 0x00, 0x00, 0x00)),
+    Register(Register::StateData("joypad_shift", 0x00, 0x00, 0x00, 0x00)),
     m_goodbits (0x00)
 {}
 
