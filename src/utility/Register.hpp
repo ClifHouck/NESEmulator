@@ -15,6 +15,7 @@ public:
                   u8_byte resetData,
                   u8_byte readOnlyMask,
                   u8_byte resetMask) :
+            m_name (name),
             m_powerOnData (powerOnData),
             m_resetData (resetData),
             m_readOnlyMask (readOnlyMask),
@@ -39,7 +40,7 @@ public:
     virtual void    write(u8_byte data, u8_byte mask = 0xFF);
 
     // Interface for Commandable.
-    virtual CommandResult                  recieveCommand(CommandInput input);
+    virtual CommandResult                  receiveCommand(CommandInput input);
     virtual std::string                    typeName() { return std::string("Register"); }
 
 protected:

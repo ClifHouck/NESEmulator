@@ -2,8 +2,8 @@
 
 #include <sstream>
 
-CommandCode READ_COMMAND_CODE   = 0;
-CommandCode WRITE_COMMAND_CODE  = 1;
+const CommandCode READ_COMMAND_CODE   = 0;
+const CommandCode WRITE_COMMAND_CODE  = 1;
 
 Register::
 Register(StateData data) :     
@@ -81,21 +81,37 @@ registerCommands()
 
 CommandResult        
 Register::
-recieveCommand(CommandInput input)
+receiveCommand(CommandInput input)
 {
     CommandResult result;
     result.m_code = CommandResult::ResultCode::NO_RECIEVER;
     switch (input.m_code) {
-        READ_COMMAND_CODE:
+        case READ_COMMAND_CODE:
         {
             std::stringstream output;    
-            output << "0x" << std::hex << rawRead();
+            output << "0x" << std::hex << static_cast<unsigned short>(rawRead() & 0xFF);
             result.m_output = output.str();
             result.m_code   = CommandResult::ResultCode::OK;
         }
         break;
-        WRITE_COMMAND_CODE:
-        //TODO...
+        case WRITE_COMMAND_CODE:
+        {
+            if (input.m_arguments.size() == 1) {
+                unsigned int value; 
+                std::istringstream stream(input.m_arguments.begin()->c_str());
+                stream >> value;
+                u8_byte truncated_value = value & 0xFF;
+                rawWrite(truncated_value);
+                std::stringstream output;
+                output << "Wrote " << std::hex << "0x" << (value & 0xFF) << " to " << name();
+                result.m_output = output.str();
+                result.m_code = CommandResult::ResultCode::OK;
+            }
+            else {
+                result.m_code = CommandResult::ResultCode::WRONG_NUM_ARGS;
+                result.m_meta = "Write takes one argument, the value to write to the register.";
+            }
+        }
         break;
     }
     return result;

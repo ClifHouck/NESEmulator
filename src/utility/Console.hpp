@@ -18,11 +18,10 @@ class Console
 public:
     Console();
 
-    void                receive_input(std::string input);
-    CommandDispatcher&  dispatcher();
+    void receive_input(std::string input);
 
 private:
-    CommandDispatcher   m_dispatcher;
+    CommandDispatcher  *m_dispatcher;
     Logger             *m_logger;
 };
 

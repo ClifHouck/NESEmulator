@@ -12,7 +12,14 @@ const CommandCode UNRECOGNIZED_COMMAND = UINT_MAX;
 
 struct CommandResult
 {
-    enum ResultCode { OK, WARNING, ERROR, INVALID_ARGUMENT, WRONG_NUM_ARGS, NO_RECIEVER }; 
+    enum ResultCode {   
+            OK, 
+            WARNING, 
+            ERROR, 
+            INVALID_ARGUMENT, 
+            WRONG_NUM_ARGS, 
+            NO_RECIEVER,
+    }; 
 
     std::string m_output;
     std::string m_meta;   // Output /about/ the result of the command.
@@ -43,7 +50,7 @@ public:
     typedef std::map<CommandCode, Command>      CommandMapType;
     typedef std::map<std::string, CommandCode>  TranslationMapType;
 
-    virtual CommandResult        recieveCommand(CommandInput command) = 0;
+    virtual CommandResult        receiveCommand(CommandInput command) = 0;
     virtual std::string          typeName() = 0;
 
     CommandMapType  commands();
@@ -64,8 +71,17 @@ class CommandDispatcher
 {
 public:
     CommandResult command(const std::string& input);
+
+    // This waits to register the object until the next time
+    // the dispatcher receives a command or the dispatcher.
+    // is explicitly told to process delayed registration objects.
+    void          delayedRegister(Commandable* object);
+    void          finishRegistration();
+
     bool          registerObject(Commandable* object);
     bool          removeObject(Commandable* object);
+
+    static CommandDispatcher* instance();
 
 private:
     std::vector<std::string> parseArguments(std::string input);
@@ -73,8 +89,9 @@ private:
     typedef std::map<std::string, Commandable*> ObjectMapType;
     // Maps types to their command maps...
     typedef std::map<std::string, std::map<CommandCode, Command>> CommandMapType;
-    CommandMapType m_commands;
-    ObjectMapType  m_objects;
+    CommandMapType            m_commands;
+    ObjectMapType             m_objects;
+    std::vector<Commandable*> m_awaitingRegistration;
 };
 
 #endif //COMMANDABLE_H

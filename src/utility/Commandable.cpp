@@ -9,6 +9,7 @@ Commandable(std::string name) :
     m_name (name)
 {
     // TODO: Some sort of name checking here?
+    CommandDispatcher::instance()->delayedRegister(this);
 }
 
 std::string
@@ -30,7 +31,8 @@ void
 Commandable::
 addCommand(Command command)
 {
-    m_commands[command.m_code] = command;
+    m_commands[command.m_code]       = command;
+    m_translation[command.m_keyword] = command.m_code;
 }
 
 Commandable::CommandMapType
@@ -61,6 +63,7 @@ parseArguments(std::string input)
     copy(istream_iterator<string>(iss),
          istream_iterator<string>(),
          back_inserter<vector<string>>(tokens));
+
     return tokens;
 }
 
@@ -71,30 +74,61 @@ command(const std::string& input)
     CommandResult result;
     result.m_code = CommandResult::NO_RECIEVER;
 
+    if (m_awaitingRegistration.size() > 0) {
+        finishRegistration();
+    }
+
     // Parse the name from the input.
     // TODO: Strip leading whitespace.
     // TODO: More advanced argument passing.
-    std::size_t position = input.find_first_of(" "); 
-    std::string name = (position != std::string::npos) ? input.substr(0, position) : input;
+    std::vector<std::string> tokens = parseArguments(input); 
 
-    std::size_t end_command_position = input.find_first_of(" ", position);
-    std::string command = input.substr(position + 1, end_command_position);
+    std::string name, command;
+    if (tokens.size() >= 2) {
+        name    = *tokens.begin();
+        command = *(tokens.begin() + 1);
+        tokens.erase(tokens.begin());
+        tokens.erase(tokens.begin());
+    }
+    else {
+        // We didn't get enough info...
+        return result;
+    }
 
     // Find the target object, if there is one.
     ObjectMapType::iterator it = m_objects.find(name);
 
     if (it != m_objects.end()) {
-        Commandable *reciever = it->second;
+        Commandable *receiver = it->second;
 
         CommandInput comInput;
         comInput.m_keyword     = command;
-        comInput.m_code        = reciever->translate(command);
-        comInput.m_arguments   = parseArguments(input);
+        comInput.m_code        = receiver->translate(command);
+        comInput.m_arguments   = tokens;
 
-        result = reciever->recieveCommand(comInput);
+        result = receiver->receiveCommand(comInput);
     }
 
     return result;
+}
+
+void
+CommandDispatcher::
+delayedRegister(Commandable *object)
+{
+    m_awaitingRegistration.push_back(object);
+}
+
+void
+CommandDispatcher::
+finishRegistration()
+{
+    std::for_each(m_awaitingRegistration.begin(), 
+                  m_awaitingRegistration.end(),
+        [this] (Commandable * object) {
+            registerObject(object);
+    }); 
+    m_awaitingRegistration.clear();
 }
 
 bool
@@ -120,4 +154,12 @@ CommandDispatcher::
 removeObject(Commandable* object)
 {
     return m_objects.erase(object->name());
+}
+
+CommandDispatcher*
+CommandDispatcher::
+instance()
+{
+    static CommandDispatcher dispatcher;
+    return &dispatcher;
 }
