@@ -14,6 +14,8 @@ target_link_libraries(nesemu
         Cpu65XX 
         PPU 
         NESIO
+        iNESFile
+        Mapper
         ${SDL_LIBRARY} 
         ${OPENGL_LIBRARIES}
 )

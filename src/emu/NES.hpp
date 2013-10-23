@@ -5,16 +5,21 @@
 #include "utility/PoweredDevice.hpp"
 #include "utility/Clock.hpp"
 #include "utility/Memory.hpp"
+#include "utility/Commandable.hpp"
 #include "CPU/Cpu65XX.hpp"
 #include "PPU/PPU.hpp"
 #include "IO/ControllerIO.hpp"
+#include "mapper/Mapper.hpp"
 
 #include <vector>
 
-class NES : public PoweredDevice
+class NES : public PoweredDevice, public Commandable
 {
 public:
     NES();
+    ~NES();
+
+    void load(const char * filename);
 
     void tick();
 
@@ -59,12 +64,20 @@ public:
         MappedMemory *m_mappedMemory;
     };
 
+    // Commandable interface
+    virtual CommandResult receiveCommand(CommandInput command);
+    virtual std::string   typeName() { return std::string("NES"); }
+
 protected:
+    // PoweredDevice interface
     virtual void resetImpl();
     virtual void powerOnImpl();
     virtual void powerOffImpl();
 
 private:
+    void registerCommands();
+
+    Mapper      *m_mapper;
     MainMemory   m_memory;
     Cpu65XX      m_cpu;
     PPU          m_ppu;

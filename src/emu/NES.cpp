@@ -2,16 +2,35 @@
 
 NES::
 NES() :
+    Commandable("nes"),
     PoweredDevice(this),
     m_clock (clockHertz),
     m_cpu (m_memory),
     m_ppu (&m_memory, m_clock),
     m_controllerIO (),
     m_memory (&m_ppu.registerBlock(),
-              &m_controllerIO)
+              &m_controllerIO),
+    m_mapper(nullptr)
 {
     m_clock.registerDevice(&m_cpu);
     m_clock.registerDevice(&m_ppu);
+    registerCommands();
+}
+
+NES::
+~NES()
+{
+    delete m_mapper;
+    m_mapper = nullptr;
+}
+
+void
+NES::
+load(const char * filename)
+{
+    iNESFile nesFile(filename);
+    delete m_mapper;
+    m_mapper = Mapper::getMapper(nesFile);
 }
 
 void 
@@ -97,4 +116,31 @@ NES::MainMemory::
 setData(address_t address, data_t data) 
 {
     return m_mappedMemory->write(correctAddress(address), data);
+}
+
+void
+NES::
+registerCommands()
+{
+    // TODO PAUSE
+    // TODO CONTINUE
+    // TODO RESET
+    // TODO LOAD ROM
+    // TODO POWER ON / OFF 
+}
+
+CommandResult 
+NES::
+receiveCommand(CommandInput command)
+{
+    CommandResult result;
+    result.m_code = CommandResult::NO_RECIEVER;
+
+    // TODO PAUSE
+    // TODO CONTINUE
+    // TODO RESET
+    // TODO LOAD ROM
+    // TODO POWER ON / OFF 
+
+    return result;
 }

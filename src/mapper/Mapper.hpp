@@ -8,6 +8,7 @@ class Mapper
 {
 public:
     Mapper();
+    virtual ~Mapper();
 
     enum MapperNumber {
         NROM = 0,

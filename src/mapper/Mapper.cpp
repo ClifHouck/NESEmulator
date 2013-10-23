@@ -8,6 +8,10 @@ Mapper::
 Mapper()
 {}
 
+Mapper::
+~Mapper()
+{}
+
 Mapper*
 Mapper::
 getMapper(iNESFile &file)

@@ -87,7 +87,6 @@ private:
     {
     public:
         ConfigurationRegister();
-        ~ConfigurationRegister();
 
         static const u8_byte NAME_TABLE_MIRRORING_MASK = 0x03;
         static const u8_byte PRG_SWITCHING_MODE_MASK   = 0x0C;
