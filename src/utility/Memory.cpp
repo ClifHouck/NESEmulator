@@ -165,7 +165,10 @@ void
 MappedMemory::
 removeSegment(address_t address) 
 {
-    Memory *segment = findMemorySegment(address);
+    std::vector<Memory*>::iterator it = findMemorySegmentIterator(address);
+    if (it != m_segments.end()) {
+        m_segments.erase(it);
+    }
 }
 
 Memory::data_t  
