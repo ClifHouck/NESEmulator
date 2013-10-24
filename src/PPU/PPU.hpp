@@ -67,6 +67,8 @@ public:
 
     RegisterBlock& registerBlock();
 
+    void setCartridgeMemory(Memory *ppuMemory);
+
     virtual void tick();
 
     void signalNMI();

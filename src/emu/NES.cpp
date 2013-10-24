@@ -31,6 +31,13 @@ load(const char * filename)
     iNESFile nesFile(filename);
     delete m_mapper;
     m_mapper = Mapper::getMapper(nesFile);
+
+    // Load cartridge Memory objects into MainMemory and the PPU...
+    Memory *cpuMemory = m_mapper->cpuMemory();
+    m_memory.mappedMemory()->removeSegment(cpuMemory->startAddress());
+    m_memory.mappedMemory()->addSegment(cpuMemory);
+
+    m_ppu.setCartridgeMemory(m_mapper->ppuMemory());
 }
 
 void 

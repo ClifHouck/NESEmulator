@@ -48,6 +48,13 @@ PPU::
 
 void
 PPU::
+setCartridgeMemory(Memory * ppuMemory)
+{
+    m_memory = ppuMemory;
+}
+
+void
+PPU::
 tick()
 {
     // Y-coordinate basically.

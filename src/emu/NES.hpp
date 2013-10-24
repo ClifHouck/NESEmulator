@@ -33,6 +33,10 @@ public:
 
         virtual ~MainMemory();
 
+        MappedMemory* mappedMemory() {
+            return m_mappedMemory;
+        }
+
         static const Memory::size_t MAIN_MEMORY_SIZE    = 2 * 1024;
 
         static const address_t WORK_RAM_BEGIN           = 0x0000;
