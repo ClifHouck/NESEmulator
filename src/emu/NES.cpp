@@ -1,5 +1,8 @@
 #include "NES.hpp"
 
+const CommandCode RESET_COMMAND_CODE       = 0;
+const CommandCode LOAD_ROM_COMMAND_CODE    = 1;
+
 NES::
 NES() :
     Commandable("nes"),
@@ -131,8 +134,22 @@ registerCommands()
 {
     // TODO PAUSE
     // TODO CONTINUE
-    // TODO RESET
-    // TODO LOAD ROM
+
+    Command reset;
+    reset.m_keyword         = "reset";
+    reset.m_code            = RESET_COMMAND_CODE;
+    reset.m_helpText        = "Resets the NES.";
+    reset.m_numArguments    = 0;
+    addCommand(reset);
+
+    Command loadRom;
+    loadRom.m_keyword   = "load";
+    loadRom.m_code      = LOAD_ROM_COMMAND_CODE;
+    loadRom.m_helpText  = "Takes 1 argument: The file to load.\n"
+                          "Load a ROM into the NES. Causes NES to reset.";
+    loadRom.m_numArguments = 1;
+    addCommand(loadRom);
+
     // TODO POWER ON / OFF 
 }
 
@@ -143,11 +160,21 @@ receiveCommand(CommandInput command)
     CommandResult result;
     result.m_code = CommandResult::NO_RECIEVER;
 
-    // TODO PAUSE
-    // TODO CONTINUE
-    // TODO RESET
-    // TODO LOAD ROM
-    // TODO POWER ON / OFF 
+    switch(command.m_code) {
+            // TODO PAUSE
+            // TODO CONTINUE
+            // TODO RESET
+            case RESET_COMMAND_CODE:
+            {
+            }
+            break;
+            // TODO LOAD ROM
+            case LOAD_ROM_COMMAND_CODE:
+            {
+            }
+            break;
+            // TODO POWER ON / OFF 
+    }
 
     return result;
 }
