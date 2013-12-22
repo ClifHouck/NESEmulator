@@ -6,6 +6,7 @@
 
 #include <map>
 #include <string>
+#include <sstream>
 
 /*
 Console
@@ -19,8 +20,10 @@ public:
     Console();
 
     void receive_input(std::string input);
+    std::string contents();
 
 private:
+    std::stringstream  m_stream;
     CommandDispatcher  *m_dispatcher;
     Logger             *m_logger;
 };

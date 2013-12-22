@@ -26,6 +26,7 @@ class NESApp {
         TTF_Font*       m_font;
         NES             m_nes;
         Console         m_console;
+        std::string     m_current_input;
 };
 
 #endif

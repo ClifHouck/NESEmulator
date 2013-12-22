@@ -84,7 +84,7 @@ Register::
 receiveCommand(CommandInput input)
 {
     CommandResult result;
-    result.m_code = CommandResult::ResultCode::NO_RECIEVER;
+    result.m_code = CommandResult::ResultCode::NO_RECEIVER;
     switch (input.m_code) {
         case READ_COMMAND_CODE:
         {

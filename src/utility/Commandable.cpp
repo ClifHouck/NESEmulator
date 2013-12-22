@@ -4,12 +4,22 @@
 #include <algorithm>
 #include <iterator>
 
+#include <iostream>
+
 Commandable::
 Commandable(std::string name) :
     m_name (name)
 {
     // TODO: Some sort of name checking here?
     CommandDispatcher::instance()->delayedRegister(this);
+
+    Command help_command;
+    help_command.m_keyword  = "help";
+    help_command.m_helpText = "List the commands that this object can recieve and how to use them.";
+    help_command.m_code     = HELP_COMMAND;
+    std::cout << "Help code is " << HELP_COMMAND << "\n";
+    help_command.m_numArguments = 0;
+    addCommand(help_command);
 }
 
 std::string
@@ -33,6 +43,35 @@ addCommand(Command command)
 {
     m_commands[command.m_code]       = command;
     m_translation[command.m_keyword] = command.m_code;
+}
+
+std::string
+Commandable::
+help()
+{
+    std::stringstream output;
+
+    std::for_each(m_commands.begin(), m_commands.end(), [this, &output] (CommandMapType::value_type &value) {
+            output << value.second.m_keyword << " - " << value.second.m_helpText << "\n";
+    });
+
+    return output.str();
+}
+
+CommandResult
+Commandable::
+receiveBuiltInCommand(CommandInput command)
+{
+    CommandResult result;
+
+    switch (command.m_code) {
+        case HELP_COMMAND:
+            result.m_code = CommandResult::ResultCode::OK;
+            result.m_output = help();
+            break;
+    }
+
+    return result;
 }
 
 Commandable::CommandMapType
@@ -69,10 +108,17 @@ parseArguments(std::string input)
 
 CommandResult
 CommandDispatcher::
+handleBuiltInCommand(std::string input)
+{
+    return CommandResult();
+}
+
+CommandResult
+CommandDispatcher::
 command(const std::string& input)
 {
     CommandResult result;
-    result.m_code = CommandResult::NO_RECIEVER;
+    result.m_code = CommandResult::NO_RECEIVER;
 
     if (m_awaitingRegistration.size() > 0) {
         finishRegistration();
@@ -90,8 +136,12 @@ command(const std::string& input)
         tokens.erase(tokens.begin());
         tokens.erase(tokens.begin());
     }
+    else if (tokens.size() == 1) {
+        command = *tokens.begin();
+        return handleBuiltInCommand(command);
+    }
     else {
-        // We didn't get enough info...
+        result.m_meta = std::string("Form of command is incorrect. Try <object_name> <command> <arguments>...");
         return result;
     }
 
@@ -105,8 +155,18 @@ command(const std::string& input)
         comInput.m_keyword     = command;
         comInput.m_code        = receiver->translate(command);
         comInput.m_arguments   = tokens;
+        std::cout << "Got " << comInput.m_keyword << " " << comInput.m_code << "\n";
 
-        result = receiver->receiveCommand(comInput);
+        // First try the built-in commands.
+        result = receiver->receiveBuiltInCommand(comInput);
+        // Then try the objects self-defined commands.
+        if (result.m_code == CommandResult::ResultCode::NO_RECEIVER) {
+            std::cout << comInput.m_keyword << " is not builtin...\n";
+            result = receiver->receiveCommand(comInput);
+        }
+    }
+    else {
+        result.m_meta = std::string("Couldn't find a receiver object of the name ") + name; 
     }
 
     return result;

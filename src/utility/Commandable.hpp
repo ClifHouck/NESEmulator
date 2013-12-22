@@ -9,16 +9,24 @@
 
 typedef unsigned int CommandCode;
 const CommandCode UNRECOGNIZED_COMMAND = UINT_MAX;
+const CommandCode HELP_COMMAND         = UINT_MAX - 1;
 
 struct CommandResult
 {
+    CommandResult() :
+        m_output (),
+        m_meta (),
+        m_code (NO_RECEIVER),
+        m_data (nullptr)
+    {}
+
     enum ResultCode {   
             OK, 
             WARNING, 
             ERROR, 
             INVALID_ARGUMENT, 
             WRONG_NUM_ARGS, 
-            NO_RECIEVER,
+            NO_RECEIVER,
     }; 
 
     std::string m_output;
@@ -55,11 +63,13 @@ public:
 
     CommandMapType  commands();
     CommandCode translate(std::string keyword);
+    CommandResult receiveBuiltInCommand(CommandInput command);
     std::string name() const;
 
 protected:
     void setName(std::string name);
     void addCommand(Command command);
+    std::string help();
 
 private:
     CommandMapType      m_commands;
@@ -85,6 +95,7 @@ public:
 
 private:
     std::vector<std::string> parseArguments(std::string input);
+    CommandResult handleBuiltInCommand(std::string input);
 
     typedef std::map<std::string, Commandable*> ObjectMapType;
     // Maps types to their command maps...

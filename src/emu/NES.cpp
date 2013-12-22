@@ -146,7 +146,7 @@ registerCommands()
     loadRom.m_keyword   = "load";
     loadRom.m_code      = LOAD_ROM_COMMAND_CODE;
     loadRom.m_helpText  = "Takes 1 argument: The file to load.\n"
-                          "Load a ROM into the NES. Causes NES to reset.";
+                          "    Load a ROM into the NES. Causes NES to reset.";
     loadRom.m_numArguments = 1;
     addCommand(loadRom);
 
@@ -158,7 +158,7 @@ NES::
 receiveCommand(CommandInput command)
 {
     CommandResult result;
-    result.m_code = CommandResult::NO_RECIEVER;
+    result.m_code = CommandResult::NO_RECEIVER;
 
     switch(command.m_code) {
             // TODO PAUSE
