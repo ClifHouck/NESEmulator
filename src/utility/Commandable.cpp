@@ -108,9 +108,35 @@ parseArguments(std::string input)
 
 CommandResult
 CommandDispatcher::
-handleBuiltInCommand(std::string input)
+handleBuiltInCommand(std::vector<std::string> tokens)
 {
-    return CommandResult();
+    CommandResult result;
+
+    if (tokens.size() == 0) { return result; }
+
+    std::string command = *tokens.begin();
+    tokens.erase(tokens.begin());
+
+    if (command == std::string("list")) {
+        std::string name_of_type = *tokens.begin();
+
+        ObjectTypeNameToVectorType::iterator it = m_typelist.find(name_of_type);
+        if (it == m_typelist.end()) {
+            std::stringstream output;
+            output << "There is no known object of type '" <<  name_of_type << "'.";
+            result.m_meta = output.str();
+            result.m_code = CommandResult::ResultCode::ERROR;
+            return result;
+        }
+
+        std::stringstream output;
+        std::for_each(it->second.begin(), it->second.end(), [&output] (Commandable *obj) {
+            output << obj->name() << std::endl;
+        });
+        result.m_output = output.str();
+    }
+
+    return result;
 }
 
 CommandResult
@@ -129,6 +155,12 @@ command(const std::string& input)
     // TODO: More advanced argument passing.
     std::vector<std::string> tokens = parseArguments(input); 
 
+    // First try to handle the command as a built-in.
+    result = handleBuiltInCommand(tokens);
+    if (result.m_code != CommandResult::ResultCode::NO_RECEIVER) {
+        return result;
+    }
+
     std::string name, command;
     if (tokens.size() >= 2) {
         name    = *tokens.begin();
@@ -136,16 +168,12 @@ command(const std::string& input)
         tokens.erase(tokens.begin());
         tokens.erase(tokens.begin());
     }
-    else if (tokens.size() == 1) {
-        command = *tokens.begin();
-        return handleBuiltInCommand(command);
-    }
     else {
         result.m_meta = std::string("Form of command is incorrect. Try <object_name> <command> <arguments>...");
         return result;
     }
 
-    // Find the target object, if there is one.
+    // Otherwise, try to find an object to receive the command.
     ObjectMapType::iterator it = m_objects.find(name);
 
     if (it != m_objects.end()) {
@@ -203,6 +231,13 @@ registerObject(Commandable* object)
     if (it == m_commands.end()) {
         m_commands[type] = object->commands();
     }
+
+    // Insert object into type listing.
+    ObjectTypeNameToVectorType::iterator nameIt = m_typelist.find(type);
+    if (nameIt == m_typelist.end()) {
+        m_typelist[type] = std::vector<Commandable*>();
+    }
+    m_typelist[type].push_back(object);
 
     // Register object.
     result = m_objects.insert(std::pair<std::string, Commandable*>(object->name(), object));

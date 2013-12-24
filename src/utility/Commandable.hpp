@@ -95,13 +95,16 @@ public:
 
 private:
     std::vector<std::string> parseArguments(std::string input);
-    CommandResult handleBuiltInCommand(std::string input);
+    CommandResult handleBuiltInCommand(std::vector<std::string> tokens);
 
     typedef std::map<std::string, Commandable*> ObjectMapType;
+    // Maps an object typename to a list of registered objects of that type.
+    typedef std::map<std::string, std::vector<Commandable*>> ObjectTypeNameToVectorType;
     // Maps types to their command maps...
     typedef std::map<std::string, std::map<CommandCode, Command>> CommandMapType;
-    CommandMapType            m_commands;
-    ObjectMapType             m_objects;
+    CommandMapType              m_commands;
+    ObjectMapType               m_objects;
+    ObjectTypeNameToVectorType  m_typelist;
     std::vector<Commandable*> m_awaitingRegistration;
 };
 
