@@ -166,11 +166,22 @@ receiveCommand(CommandInput command)
             // TODO RESET
             case RESET_COMMAND_CODE:
             {
+                reset();
+                result.m_code = CommandResult::OK;
             }
             break;
             // TODO LOAD ROM
             case LOAD_ROM_COMMAND_CODE:
             {
+                if (command.m_arguments.size() < 1) {
+                    result.m_code = CommandResult::WRONG_NUM_ARGS;
+                    result.m_meta = std::string("No filename specified.");
+                    return result;
+                }
+                std::string filename = *command.m_arguments.begin();            
+                load(filename.c_str());
+                reset();
+                result.m_code = CommandResult::OK;
             }
             break;
             // TODO POWER ON / OFF 

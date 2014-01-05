@@ -6,7 +6,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
-#include <SDL.h>
+#include "SDL2/SDL.h"
 
 const int WIDTH     = 300;
 const int HEIGHT    = 300;

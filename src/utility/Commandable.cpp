@@ -115,9 +115,14 @@ handleBuiltInCommand(std::vector<std::string> tokens)
     if (tokens.size() == 0) { return result; }
 
     std::string command = *tokens.begin();
+    std::cout << "Command: \"" << command << "\"\n";
     tokens.erase(tokens.begin());
 
     if (command == std::string("list")) {
+        if (tokens.size() != 1) {
+            result.m_code = CommandResult::ResultCode::WRONG_NUM_ARGS;
+            result.m_meta = "Form of command is incorrect. Please provide name of object type to list.\n";
+        }
         std::string name_of_type = *tokens.begin();
 
         ObjectTypeNameToVectorType::iterator it = m_typelist.find(name_of_type);
@@ -134,6 +139,7 @@ handleBuiltInCommand(std::vector<std::string> tokens)
             output << obj->name() << std::endl;
         });
         result.m_output = output.str();
+        result.m_code   = CommandResult::ResultCode::OK;
     }
 
     return result;

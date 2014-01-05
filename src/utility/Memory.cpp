@@ -113,7 +113,7 @@ setAddressRange(address_t begin, address_t end)
 {
     Memory::setAddressRange(begin, end);
 
-    assert((begin - end) == m_size && 
+    assert((end - begin) == m_size && 
            "BackedMemory does not support resizing the address range!");
 }
 

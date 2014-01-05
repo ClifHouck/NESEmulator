@@ -2,7 +2,6 @@
 #define MMC1_MAPPER_H
 
 #include "Mapper.hpp"
-#include "IO/iNESFile.hpp"
 #include "utility/Register.hpp"
 
 class MMC1Mapper : public Mapper
