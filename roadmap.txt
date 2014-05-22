@@ -1,0 +1,17 @@
+=== ROAD TO SOMETHING LIKE WORKING ===
+- Provide interactive console support through a window.
+    - DONE Keyboard input
+    - DONE help for individual objects
+    - built-in console/command-dispatcher commands...
+    - list objects by name
+    - list objects by type
+    - basic tab completion
+- Finish PPU functionality
+    - Rendering sprites
+    - Rendering backgrounds
+- NES functionality
+    - Pause execution
+    - Step execution
+    - Continue execution
+- Integrate PPU to CPU communication/synchronization.
+- Get a basic game like Mega Man 2 working.

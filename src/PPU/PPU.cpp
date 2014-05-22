@@ -16,16 +16,17 @@ PPU(Memory *cpuMemory,
     m_mask          (), 
     m_status        (m_isFirstWrite),
     m_oamAddress    (),
+    m_spriteRAM     (new BackedMemory(spriteStartAddress, spriteEndAddress)),
     m_oamData       (m_spriteRAM, m_oamAddress),
     m_oamDMA        (),
     m_scroll        (m_isFirstWrite),
     m_address       (m_isFirstWrite, m_control),
     m_data          (m_address, cpuMemory),
     m_bitmap        (),
-    m_spriteRAM     (new BackedMemory(spriteStartAddress, spriteEndAddress)),
     m_memory        (new BackedMemory(ppuStartAddress, ppuEndAddress)),
     m_registerBlock (*this)
 {
+
     std::fill(m_bitmap, m_bitmap + bitmapSize, 0.0);
 
     for (Register* reg : 
@@ -44,6 +45,8 @@ PPU(Memory *cpuMemory,
 PPU::
 ~PPU()
 {
+    delete m_spriteRAM;
+    delete m_memory;
 }
 
 void

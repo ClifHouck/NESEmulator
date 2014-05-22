@@ -11,10 +11,10 @@ NES() :
     m_cpu (m_memory),
     m_ppu (&m_memory, m_clock),
     m_controllerIO (),
-    m_memory (&m_ppu.registerBlock(),
-              &m_controllerIO),
+    m_memory (nullptr, nullptr),
     m_mapper(nullptr)
 {
+    m_memory = MainMemory(&m_ppu.registerBlock(), &m_controllerIO);
     m_clock.registerDevice(&m_cpu);
     m_clock.registerDevice(&m_ppu);
     registerCommands();

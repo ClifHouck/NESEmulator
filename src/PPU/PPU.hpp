@@ -197,7 +197,7 @@ private:
     class OAMData : public Register
     {
     public:
-        OAMData(Memory *spriteRAM,
+        OAMData(Memory *&spriteRAM,
                 OAMAddress &address) :
             Register(StateData("oam_data", 0x00, 0x00, 0x00, 0x00)),
             m_spriteRAM (spriteRAM),
@@ -216,7 +216,7 @@ private:
         }
 
     private:
-        Memory     *m_spriteRAM;
+        Memory     *&m_spriteRAM;
         OAMAddress &m_address;
     };
 
