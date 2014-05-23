@@ -17,9 +17,7 @@ const unsigned int NES_DISPLAY_HEIGHT   = 240;
 NESApp::
 NESApp() :
     m_running (true),
-    m_console_window (nullptr),
-    m_font    (nullptr),
-    m_console_text_dirty (true)
+    m_console_window (nullptr)
 {
 }
 
@@ -46,198 +44,39 @@ onExecute()
     return 0;
 }
 
-bool 
-NESApp::
-onInit()
+NESApp::ConsoleWindow::
+ConsoleWindow(Console& console) :
+    EmuWindow("win-console",
+              "NES Command Console",
+              5, 5,
+              CONSOLE_WIDTH, CONSOLE_HEIGHT),
+    m_sdl_renderer (nullptr),
+    m_font (nullptr),
+    m_console (console),
+    m_console_text_dirty (true)
 {
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-        return false;
-    }
-
-    int return_code = TTF_Init();
-    checkTTFError(return_code != 0, "TTF_OpenFont() Failed: ");
+    m_sdl_renderer = SDL_CreateRenderer(m_sdl_window, -1, SDL_RENDERER_SOFTWARE);
+    checkSDLError(NULL == m_sdl_renderer, "SDL_CreateRenderer() failed: ");
 
     // Load a font
     m_font = TTF_OpenFont("Inconsolata.ttf", 20);
     checkTTFError(NULL == m_font, "TTF_OpenFont() Failed: ");
 
-    /* Set the minimum requirements for the OpenGL window */
-    /*
-    SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 5 );
-    SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 5 );
-    SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 5 );
-    SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
-    SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-    */
-
-    m_console_window = SDL_CreateWindow("CNES Console",
-                          SDL_WINDOWPOS_UNDEFINED,
-                          SDL_WINDOWPOS_UNDEFINED,
-                          CONSOLE_WIDTH, CONSOLE_HEIGHT,
-                          0);
-    checkSDLError(NULL == m_console_window, "SDL_CreateWindow() failed: "); 
-
-    m_console_renderer = SDL_CreateRenderer(m_console_window, -1, SDL_RENDERER_SOFTWARE);
-    checkSDLError(NULL == m_console_renderer, "SDL_CreateRenderer() failed: ");
-    
-    /* return_code = SDL_SetRenderDrawBlendMode(m_console_renderer, SDL_BLENDMODE_ADD);
+/*  return_code = SDL_SetRenderDrawBlendMode(m_console_renderer, SDL_BLENDMODE_ADD);
     checkSDLError(0 != return_code, "SDL_SetRenderDrawBlendMode() failed: "); */
 
-/*
-    if ((m_nes_display = SDL_SetVideoMode(NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT, video->vfmt->BitsPerPixel, SDL_OPENGL)) == NULL) { 
-        return false; 
-    }
-
-    glClearColor(0, 0, 0, 0);
-    glClearDepth(1.0f);
-
-    glViewport(0, 0, NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT);
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
- 
-    glOrtho(0, NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT, 0, 1, -1);
- 
-    glMatrixMode(GL_MODELVIEW);
- 
-    glEnable(GL_TEXTURE_2D);
- 
-    glLoadIdentity();
-*/
-
-    return true;
 }
 
-
-/* 
-   FIXME - Move somewhere more appropriate.
-   Shamelessly stolen from 
-   http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c 
-*/
-static 
-std::vector<std::string> 
-&split(const std::string &s, char delim, std::vector<std::string> &elems) 
+NESApp::ConsoleWindow::
+~ConsoleWindow()
 {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(item);
-    }
-    return elems;
-}
-
-static
-std::vector<std::string> 
-split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, elems);
-    return elems;
+    // TODO: Destroy font...
 }
 
 void
-NESApp::
-renderNESDisplay()
-{
-/*
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glLoadIdentity();
-
-    glBegin(GL_QUADS);
-        glColor3f(1, 0, 0); glVertex3f(0, 0, 0);
-        glColor3f(1, 1, 0); glVertex3f(NES_DISPLAY_WIDTH, 0, 0);
-        glColor3f(1, 0, 1); glVertex3f(NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT, 0);
-        glColor3f(1, 1, 1); glVertex3f(0, NES_DISPLAY_HEIGHT, 0);
-    glEnd();
-*/
-}
-
-void
-NESApp::
-renderConsole()
-{
-    std::vector<SDL_Surface*> text_surfaces;
-    if (m_console_text_dirty) {
-
-        //FIXME: This is gotta be really slow...
-        std::stringstream output;
-        output << m_console.contents();
-        output << "> " << m_current_input;
-
-        std::string console_text = output.str();
-
-        std::vector<std::string> lines = split(console_text, '\n');
-
-        SDL_Color text_color = { 255, 255, 255 };
-        SDL_Color background_color = { 0, 0, 0 };
-
-        // Render each line to a surface.
-        std::for_each(lines.begin(), lines.end(), [this, background_color, text_color, &text_surfaces](std::string line) {
-            // RenderText doesn't like empty strings.
-            if (line.length() == 0) {
-                line = std::string("   ");
-            }
-
-            // Write text to surface
-            SDL_Surface* surface = TTF_RenderText_Shaded(m_font, line.c_str(), text_color, background_color);
-            checkTTFError(NULL == surface, "TTF_RenderText_Solid() Failed: "); 
-            text_surfaces.push_back(surface);
-        });
-
-        // Clear the screen
-        SDL_SetRenderDrawColor(m_console_renderer, 0x00, 0x00, 0x00, 0xFF);
-        SDL_RenderClear(m_console_renderer);
-
-        SDL_Rect dest_rect {};
-        dest_rect.x = 0;
-        dest_rect.y = CONSOLE_HEIGHT - 25;
-        int lines_to_render = CONSOLE_HEIGHT / 15;
-        auto it = text_surfaces.rbegin();
-        std::vector<SDL_Texture*> textures;
-        // Render visible lines starting from the end of the console.
-        for (int n = 0; n < lines_to_render; ++n) {
-            if (it == text_surfaces.rend()) {
-                break;
-            }
-            
-            SDL_Texture *text_texture = SDL_CreateTextureFromSurface(m_console_renderer, *it);
-            checkSDLError(NULL == text_texture, "SDL_CreateTextureFromSurface Failed: ");
-            textures.push_back(text_texture);
-
-            // Apply the text to the display
-            dest_rect.w = (*it)->w;
-            dest_rect.h = (*it)->h;
-            SDL_Rect src_rect = { 0, 0, (*it)->w, (*it)->h };
-            int return_code = SDL_RenderCopy(m_console_renderer, text_texture, &src_rect, &dest_rect);
-            checkSDLError(0 != return_code, "SDL_RenderCopy Failed: ");
-            
-            dest_rect.y -= 20;
-            ++it;
-        }
-
-        //Update the display
-        SDL_RenderPresent(m_console_renderer);
-
-        // Clean up surfaces and textures.
-        // TODO: Only clean up surfaces and textures that we don't need anymore (ie offscreen).
-        std::for_each(text_surfaces.begin(), text_surfaces.end(), [](SDL_Surface * surface) {
-            SDL_FreeSurface(surface);
-        });
-        std::for_each(textures.begin(), textures.end(), [](SDL_Texture * texture) {
-            SDL_DestroyTexture(texture);
-        });
-
-        m_console_text_dirty = false;
-    }
-}
-
-void 
-NESApp::
+NESApp::ConsoleWindow::
 onEvent(SDL_Event* Event)
 {
-    if (Event->type == SDL_QUIT) {
-        m_running = false;
-    }
-
     if (Event->type == SDL_KEYDOWN) {
         std::cout << "Got keydown event!\n";
         SDL_Keycode keyPressed = Event->key.keysym.sym;
@@ -277,6 +116,194 @@ onEvent(SDL_Event* Event)
     }
 }
 
+/* 
+   FIXME - Move somewhere more appropriate.
+   Shamelessly stolen from 
+   http://stackoverflow.com/questions/236129/how-to-split-a-string-in-c 
+*/
+static 
+std::vector<std::string> 
+&split(const std::string &s, char delim, std::vector<std::string> &elems) 
+{
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+static
+std::vector<std::string> 
+split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, elems);
+    return elems;
+}
+
+void 
+NESApp::ConsoleWindow::
+render()
+{
+    std::vector<SDL_Surface*> text_surfaces;
+    if (m_console_text_dirty) {
+
+        //FIXME: This is gotta be really slow...
+        std::stringstream output;
+        output << m_console.contents();
+        output << "> " << m_current_input;
+
+        std::string console_text = output.str();
+
+        std::vector<std::string> lines = split(console_text, '\n');
+
+        SDL_Color text_color = { 255, 255, 255 };
+        SDL_Color background_color = { 0, 0, 0 };
+
+        // Render each line to a surface.
+        std::for_each(lines.begin(), lines.end(), [this, background_color, text_color, &text_surfaces](std::string line) {
+            // RenderText doesn't like empty strings.
+            if (line.length() == 0) {
+                line = std::string("   ");
+            }
+
+            // Write text to surface
+            SDL_Surface* surface = TTF_RenderText_Shaded(m_font, line.c_str(), text_color, background_color);
+            checkTTFError(NULL == surface, "TTF_RenderText_Solid() Failed: "); 
+            text_surfaces.push_back(surface);
+        });
+
+        // Clear the screen
+        SDL_SetRenderDrawColor(m_sdl_renderer, 0x00, 0x00, 0x00, 0xFF);
+        SDL_RenderClear(m_sdl_renderer);
+
+        SDL_Rect dest_rect {};
+        dest_rect.x = 0;
+        dest_rect.y = CONSOLE_HEIGHT - 25;
+        int lines_to_render = CONSOLE_HEIGHT / 15;
+        auto it = text_surfaces.rbegin();
+        std::vector<SDL_Texture*> textures;
+        // Render visible lines starting from the end of the console.
+        for (int n = 0; n < lines_to_render; ++n) {
+            if (it == text_surfaces.rend()) {
+                break;
+            }
+            
+            SDL_Texture *text_texture = SDL_CreateTextureFromSurface(m_sdl_renderer, *it);
+            checkSDLError(NULL == text_texture, "SDL_CreateTextureFromSurface Failed: ");
+            textures.push_back(text_texture);
+
+            // Apply the text to the display
+            dest_rect.w = (*it)->w;
+            dest_rect.h = (*it)->h;
+            SDL_Rect src_rect = { 0, 0, (*it)->w, (*it)->h };
+            int return_code = SDL_RenderCopy(m_sdl_renderer, text_texture, &src_rect, &dest_rect);
+            checkSDLError(0 != return_code, "SDL_RenderCopy Failed: ");
+            
+            dest_rect.y -= 20;
+            ++it;
+        }
+
+        //Update the display
+        SDL_RenderPresent(m_sdl_renderer);
+
+        // Clean up surfaces and textures.
+        // TODO: Only clean up surfaces and textures that we don't need anymore (ie offscreen).
+        std::for_each(text_surfaces.begin(), text_surfaces.end(), [](SDL_Surface * surface) {
+            SDL_FreeSurface(surface);
+        });
+        std::for_each(textures.begin(), textures.end(), [](SDL_Texture * texture) {
+            SDL_DestroyTexture(texture);
+        });
+
+        m_console_text_dirty = false;
+    }
+}
+
+NESApp::CpuWindow::
+CpuWindow() :
+    EmuWindow("win-cpu",
+              "NES CPU Instrumentation",
+              CONSOLE_WIDTH + 5, 5,
+              CONSOLE_WIDTH, CONSOLE_HEIGHT)
+{}
+
+NESApp::PpuWindow::
+PpuWindow() :
+    EmuWindow("win-ppu",
+              "NES PPU Instrumentation",
+              (CONSOLE_WIDTH + 5) * 2, 5,
+              CONSOLE_WIDTH, CONSOLE_HEIGHT)
+{}
+
+bool 
+NESApp::
+onInit()
+{
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+        return false;
+    }
+
+    int return_code = TTF_Init();
+    checkTTFError(return_code != 0, "TTF_OpenFont() Failed: ");
+
+    m_console_window = new ConsoleWindow(m_console);    
+    m_windows[m_console_window->id()] = m_console_window;
+
+    m_focused_window = m_console_window;
+
+    m_cpu_window = new CpuWindow();    
+    m_windows[m_cpu_window->id()] = m_cpu_window;
+
+    m_ppu_window = new PpuWindow();    
+    m_windows[m_ppu_window->id()] = m_ppu_window;
+/*
+    if ((m_nes_display = SDL_SetVideoMode(NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT, video->vfmt->BitsPerPixel, SDL_OPENGL)) == NULL) { 
+        return false; 
+    }
+
+    glClearColor(0, 0, 0, 0);
+    glClearDepth(1.0f);
+
+    glViewport(0, 0, NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+ 
+    glOrtho(0, NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT, 0, 1, -1);
+ 
+    glMatrixMode(GL_MODELVIEW);
+ 
+    glEnable(GL_TEXTURE_2D);
+ 
+    glLoadIdentity();
+*/
+
+    return true;
+}
+
+
+
+
+void 
+NESApp::
+onEvent(SDL_Event* Event)
+{
+    if (Event->type == SDL_QUIT) {
+        m_running = false;
+        return;
+    }
+
+    if (Event->type == SDL_WINDOWEVENT_FOCUS_GAINED) {
+        EmuWindow* window = m_windows[Event->window.windowID];
+        m_focused_window  = window;
+        return;
+    }
+
+    // Otherwise send the even to the focused window.
+    m_focused_window->onEvent(Event);
+}
+
 void 
 NESApp::
 onLoop()
@@ -287,14 +314,14 @@ void
 NESApp::
 onRender()
 {
-    renderNESDisplay();
-    renderConsole();
+    std::for_each(m_windows.begin(), m_windows.end(), [this](std::pair<unsigned int, EmuWindow*> it) { it.second->render(); });
 }
 
 void 
 NESApp::
 onCleanup()
 {
+    delete m_console_window;
 }
 
 void 

@@ -1,4 +1,4 @@
-include(FindSDL)
+include(FindSDL2)
 
 find_package(SDL2       REQUIRED)
 find_package(SDL2TTF    REQUIRED)
@@ -9,6 +9,7 @@ add_executable(nesemu
         main.cpp 
         NesApp.cpp
         NES.cpp
+        EmuWindow.cpp
 )
 
 target_link_libraries(nesemu 

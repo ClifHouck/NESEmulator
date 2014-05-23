@@ -12,7 +12,7 @@ NES() :
     m_ppu (&m_memory, m_clock),
     m_controllerIO (),
     m_memory (nullptr, nullptr),
-    m_mapper(nullptr)
+    m_mapper (nullptr)
 {
     m_memory = MainMemory(&m_ppu.registerBlock(), &m_controllerIO);
     m_clock.registerDevice(&m_cpu);
@@ -83,8 +83,10 @@ MainMemory(Memory *ppuRegisters,
     m_apuRam  (APU_REGISTERS_BEGIN, APU_REGISTERS_END),
     m_cartridgeRam (CARTRIDGE_EXPO_BEGIN, CARTRIDGE_PRGROM_END)
 {
-    assert(ppuRegisters != nullptr && "ppuRegisters is nullptr!");
-    assert(controllerIO != nullptr && "controllerIO is nullptr!");
+    // TODO: Invert this so the PPU draws on its registers from the main memory pool rather than
+    // passing its own memory to this object.
+    /* assert(ppuRegisters != nullptr && "ppuRegisters is nullptr!");
+       assert(controllerIO != nullptr && "controllerIO is nullptr!"); */
 
     std::vector<Memory*> segments;
     segments.push_back(&m_workRam);
@@ -99,8 +101,10 @@ MainMemory(Memory *ppuRegisters,
 NES::MainMemory::
 ~MainMemory() 
 {
-    delete m_mappedMemory;
-    m_mappedMemory = nullptr; 
+    if (m_mappedMemory != nullptr) {
+        delete m_mappedMemory;
+        m_mappedMemory = nullptr; 
+    }
 }
 
 Memory::address_t

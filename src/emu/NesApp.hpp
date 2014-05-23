@@ -1,10 +1,10 @@
 #ifndef _NESAPP_H_
 #define _NESAPP_H_
 
-#include "SDL2/SDL.h"
 #include "SDL2/SDL_ttf.h"
 
 #include "NES.hpp"
+#include "EmuWindow.hpp"
 #include "utility/Console.hpp"
 
 class NESApp {
@@ -17,22 +17,53 @@ class NESApp {
         void onCleanup();
 
         void onRender();
-        void renderConsole();
-        void renderNESDisplay();
+
+        class ConsoleWindow : public EmuWindow {
+            public:
+                ConsoleWindow(Console & console);
+                virtual ~ConsoleWindow();
+
+                virtual void render();
+                virtual void onEvent(SDL_Event* Event);
+
+            private:
+                std::string   m_current_input;
+                SDL_Renderer* m_sdl_renderer;
+                TTF_Font*     m_font; 
+                bool          m_console_text_dirty;
+                Console&      m_console;
+        };
+
+        class CpuWindow : public EmuWindow {
+            public:
+                CpuWindow();
+
+                virtual void render() {}
+                virtual void onEvent(SDL_Event* Event) {}
+        };
+
+        class PpuWindow : public EmuWindow {
+            public:
+                PpuWindow();
+
+                virtual void render() {}
+                virtual void onEvent(SDL_Event* Event) {}
+        };
+
+    protected:
+        static void checkSDLError(bool condition, std::string errmsg);        
+        static void checkTTFError(bool condition, std::string errmsg);        
 
     private:
-        void checkSDLError(bool condition, std::string errmsg);        
-        void checkTTFError(bool condition, std::string errmsg);        
-
         bool            m_running;
-        bool            m_console_text_dirty;
-        SDL_Window*     m_console_window;
-        SDL_Renderer*   m_console_renderer;
-        SDL_Window*     m_nes_window;
-        TTF_Font*       m_font;
         NES             m_nes;
         Console         m_console;
-        std::string     m_current_input;
+
+        ConsoleWindow*         m_console_window;
+        CpuWindow*             m_cpu_window;
+        PpuWindow*             m_ppu_window;
+        EmuWindow*             m_focused_window;
+        std::map<unsigned int, EmuWindow*> m_windows;
 };
 
 #endif
