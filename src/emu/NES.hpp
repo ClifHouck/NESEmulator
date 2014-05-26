@@ -72,6 +72,8 @@ public:
     virtual CommandResult receiveCommand(CommandInput command);
     virtual std::string   typeName() { return std::string("NES"); }
 
+    const Cpu65XX& cpu() const { return m_cpu; }
+
 protected:
     // PoweredDevice interface
     virtual void resetImpl();

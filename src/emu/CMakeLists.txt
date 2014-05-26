@@ -10,6 +10,7 @@ add_executable(nesemu
         NesApp.cpp
         NES.cpp
         EmuWindow.cpp
+        RenderText.cpp
 )
 
 target_link_libraries(nesemu 

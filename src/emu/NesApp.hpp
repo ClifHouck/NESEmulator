@@ -36,10 +36,15 @@ class NESApp {
 
         class CpuWindow : public EmuWindow {
             public:
-                CpuWindow();
+                CpuWindow(const Cpu65XX& cpu);
 
-                virtual void render() {}
+                virtual void render(); 
                 virtual void onEvent(SDL_Event* Event) {}
+
+            private:
+                const Cpu65XX& m_cpu;
+                SDL_Renderer* m_sdl_renderer;
+                TTF_Font*     m_font;
         };
 
         class PpuWindow : public EmuWindow {
