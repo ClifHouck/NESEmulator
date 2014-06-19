@@ -3,6 +3,8 @@
 #include <cassert>
 #include <algorithm>
 
+#include <iostream>
+
 Memory::
 Memory(address_t startAddress,
        address_t endAddress) :
@@ -83,6 +85,23 @@ BackedMemory(address_t beginAddress, address_t endAddress) :
 }
 
 BackedMemory::
+BackedMemory(const BackedMemory& other) :
+    Memory (other.m_startAddress, other.m_endAddress),
+    m_backing (nullptr)
+{
+    m_backing = new data_t[m_size];
+    std::copy(other.m_backing, other.m_backing + m_size, m_backing);
+}
+
+BackedMemory&
+BackedMemory::
+operator=(BackedMemory tmp)
+{
+    std::swap(m_backing,        tmp.m_backing);
+    return *this;
+}
+
+BackedMemory::
 ~BackedMemory()
 {
     delete[] m_backing;
@@ -105,6 +124,13 @@ BackedMemory(size_t size,
     m_backing = new data_t[size];
     assert(m_backing != nullptr);
     std::copy(initData, initData + size, m_backing);
+}
+
+Memory*
+BackedMemory::
+clone()
+{
+    return new BackedMemory(*this);
 }
 
 void
@@ -153,6 +179,23 @@ MappedMemory(address_t startAddress,
     assert(segments.size() > 0);
 }
 
+MappedMemory::
+MappedMemory(const MappedMemory& other) :
+    Memory(other.m_startAddress, other.m_endAddress)
+{
+    std::for_each(other.m_segments.begin(), other.m_segments.end(), [&](Memory* segment) {
+            Memory * cloned_segment = segment->clone();
+            m_segments.push_back(cloned_segment);
+    });
+}
+
+Memory*
+MappedMemory::
+clone()
+{
+    return new MappedMemory(*this);
+}
+
 void
 MappedMemory::
 addSegment(Memory *segment)
@@ -196,15 +239,14 @@ findMemorySegmentIterator(address_t address)
     //TODO: More efficent memory segment find. This is O(n).
     for (iter = m_segments.begin(); iter != m_segments.end(); ++iter) {
         Memory *segment = *iter;
+
+        std::cout << segment->startAddress() << " " << segment->endAddress() << "\n";
+
         if (address >= segment->startAddress() &&
             address <= segment->endAddress()) {
             break;
         }
     }
-
-    //TODO : Default behavior and warnings when it can't find the memory segment to match an
-    // address?
-    assert(iter != m_segments.end());
 
     return iter;
 }
@@ -214,5 +256,11 @@ MappedMemory::
 findMemorySegment(address_t address)
 {
     auto iter = findMemorySegmentIterator(address);
+
+    //TODO : Default behavior and warnings when it can't find the memory segment to match an
+    // address?
+    assert(iter != m_segments.end() && 
+            "MappedMemory::findMemorySegmentIterator: requested address not found!");
+
     return *iter;
 }

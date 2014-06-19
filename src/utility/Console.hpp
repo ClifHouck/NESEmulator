@@ -19,6 +19,7 @@ class Console
 public:
     Console();
 
+    void receive_script(std::string script);
     void receive_input(std::string input);
     std::string contents();
 

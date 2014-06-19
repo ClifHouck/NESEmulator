@@ -31,11 +31,17 @@ public:
         MainMemory(Memory *ppuRegisters,
                    Memory *controllerIO);
 
+        MainMemory(const MainMemory& other);
+
         virtual ~MainMemory();
 
         MappedMemory* mappedMemory() {
             return m_mappedMemory;
         }
+
+        MainMemory& operator=(MainMemory tmp);
+
+        Memory* clone() { return new MainMemory(*this); }
 
         static const Memory::size_t MAIN_MEMORY_SIZE    = 2 * 1024;
 
@@ -73,6 +79,9 @@ public:
     virtual std::string   typeName() { return std::string("NES"); }
 
     const Cpu65XX& cpu() const { return m_cpu; }
+    const PPU&     ppu() const { return m_ppu; }
+    // FIXME: Here for easy coding... should remove.
+    PPU&     ppu() { return m_ppu; }
 
 protected:
     // PoweredDevice interface
@@ -89,6 +98,8 @@ private:
     PPU          m_ppu;
     Clock        m_clock;
     ControllerIO m_controllerIO;
+
+    bool m_paused;
 };
 
 #endif //NES_H

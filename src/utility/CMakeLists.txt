@@ -5,4 +5,5 @@ add_library(Utility
     Memory.cpp
     Commandable.cpp
     Console.cpp
+    split.cpp
 )

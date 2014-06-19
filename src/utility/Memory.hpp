@@ -40,6 +40,8 @@ public:
 
     size_t size() const;
 
+    virtual Memory* clone() = 0;
+
 protected:
     virtual data_t  getData(address_t address) = 0;
     virtual void    setData(address_t address, data_t data) = 0;
@@ -55,9 +57,15 @@ public:
     BackedMemory(address_t beginAddress, address_t endAddress);
     BackedMemory(size_t size);
     BackedMemory(size_t size, data_t *initData);
+
+    BackedMemory(const BackedMemory& other);
+    BackedMemory& operator=(BackedMemory tmp);
+
     virtual ~BackedMemory();
 
     virtual void setAddressRange(address_t begin, address_t end);
+
+    virtual Memory* clone();
 
 protected:
     virtual data_t  getData(address_t address);
@@ -76,8 +84,15 @@ public:
                  address_t endAddress,
                  std::vector<Memory*> segments);
 
+    MappedMemory(const MappedMemory& other);
+    MappedMemory& operator=(MappedMemory tmp);
+
+    virtual ~MappedMemory() {}
+
     void addSegment(Memory * segment);
     void removeSegment(address_t address);
+
+    virtual Memory* clone();
 
 protected:
     virtual data_t  getData(address_t address);

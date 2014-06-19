@@ -45,6 +45,7 @@ load()
         // m_fileSize = inFile.tellg();
         // Bail out if the file is too small.
         if (m_fileSize < HEADER_SIZE) {
+            // FIXME: Return error.
             return;
         }
 

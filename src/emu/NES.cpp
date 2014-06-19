@@ -1,7 +1,11 @@
 #include "NES.hpp"
 
+#include <algorithm>
+
 const CommandCode RESET_COMMAND_CODE       = 0;
 const CommandCode LOAD_ROM_COMMAND_CODE    = 1;
+const CommandCode PAUSE_COMMAND_CODE       = 2;
+const CommandCode CONTINUE_COMMAND_CODE    = 3;
 
 NES::
 NES() :
@@ -12,7 +16,8 @@ NES() :
     m_ppu (&m_memory, m_clock),
     m_controllerIO (),
     m_memory (nullptr, nullptr),
-    m_mapper (nullptr)
+    m_mapper (nullptr),
+    m_paused (true)
 {
     m_memory = MainMemory(&m_ppu.registerBlock(), &m_controllerIO);
     m_clock.registerDevice(&m_cpu);
@@ -37,8 +42,9 @@ load(const char * filename)
 
     // Load cartridge Memory objects into MainMemory and the PPU...
     Memory *cpuMemory = m_mapper->cpuMemory();
-    m_memory.mappedMemory()->removeSegment(cpuMemory->startAddress());
-    m_memory.mappedMemory()->addSegment(cpuMemory);
+    MappedMemory *mappedMemory = m_memory.mappedMemory();
+    mappedMemory->removeSegment(cpuMemory->startAddress());
+    mappedMemory->addSegment(cpuMemory);
 
     m_ppu.setCartridgeMemory(m_mapper->ppuMemory());
 }
@@ -47,6 +53,7 @@ void
 NES::
 tick() 
 {
+    if (m_paused) { return; }
     m_clock.tick();
 }
 
@@ -99,6 +106,17 @@ MainMemory(Memory *ppuRegisters,
 }
 
 NES::MainMemory::
+MainMemory(const MainMemory& other) :
+    Memory (other.m_startAddress, other.m_endAddress),
+    m_workRam (other.m_workRam),
+    m_apuRam  (other.m_apuRam),
+    m_cartridgeRam (other.m_cartridgeRam)
+{
+    m_mappedMemory = dynamic_cast<MappedMemory*>(other.m_mappedMemory->clone());
+    assert(m_mappedMemory != nullptr);
+}
+
+NES::MainMemory::
 ~MainMemory() 
 {
     if (m_mappedMemory != nullptr) {
@@ -107,13 +125,26 @@ NES::MainMemory::
     }
 }
 
+NES::MainMemory&
+NES::MainMemory::
+operator=(MainMemory tmp)
+{
+    std::swap(m_workRam,      tmp.m_workRam); 
+    std::swap(m_apuRam,       tmp.m_apuRam); 
+    std::swap(m_cartridgeRam, tmp.m_cartridgeRam); 
+    std::swap(m_mappedMemory, tmp.m_mappedMemory);
+
+    return *this;
+}
+
 Memory::address_t
 NES::MainMemory::
 correctAddress(address_t address) const
 {
     if (address >  WORK_RAM_END &&
         address <= WORK_RAM_MIRROR_END) {
-        return address % WORK_RAM_SIZE;
+        // TODO: Modulo is expensive...
+        return address % WORK_RAM_SIZE; 
     }
     return address;
 }
@@ -136,25 +167,20 @@ void
 NES::
 registerCommands()
 {
-    // TODO PAUSE
-    // TODO CONTINUE
+    // TODO: 
+    // POWER ON / OFF 
+    // Step instruction
+    // Watchpoints
+    // Breakpoints
+    std::vector<Command> commands = {
+        { "pause",    PAUSE_COMMAND_CODE,    "Pauses execution of the NES.", 0},
+        { "continue", CONTINUE_COMMAND_CODE, "Continues execution of the NES.", 0 },
+        { "reset",    RESET_COMMAND_CODE,    "Resets the NES.", 0 },
+        { "load",     LOAD_ROM_COMMAND_CODE, "Takes 1 argument: The file to load.\n"
+                                             " Load a ROM into the NES. Causes NES to reset.", 1}
+    };
 
-    Command reset;
-    reset.m_keyword         = "reset";
-    reset.m_code            = RESET_COMMAND_CODE;
-    reset.m_helpText        = "Resets the NES.";
-    reset.m_numArguments    = 0;
-    addCommand(reset);
-
-    Command loadRom;
-    loadRom.m_keyword   = "load";
-    loadRom.m_code      = LOAD_ROM_COMMAND_CODE;
-    loadRom.m_helpText  = "Takes 1 argument: The file to load.\n"
-                          "    Load a ROM into the NES. Causes NES to reset.";
-    loadRom.m_numArguments = 1;
-    addCommand(loadRom);
-
-    // TODO POWER ON / OFF 
+    std::for_each(commands.begin(), commands.end(), [&](Command c) { addCommand(c); });
 }
 
 CommandResult 
@@ -165,16 +191,24 @@ receiveCommand(CommandInput command)
     result.m_code = CommandResult::NO_RECEIVER;
 
     switch(command.m_code) {
-            // TODO PAUSE
-            // TODO CONTINUE
-            // TODO RESET
+            case PAUSE_COMMAND_CODE:
+            {
+                m_paused = true;
+                result.m_code = CommandResult::OK;
+            }
+            break;
+            case CONTINUE_COMMAND_CODE:
+            {
+                m_paused = false;
+                result.m_code = CommandResult::OK;
+            }
+            break;
             case RESET_COMMAND_CODE:
             {
                 reset();
                 result.m_code = CommandResult::OK;
             }
             break;
-            // TODO LOAD ROM
             case LOAD_ROM_COMMAND_CODE:
             {
                 if (command.m_arguments.size() < 1) {

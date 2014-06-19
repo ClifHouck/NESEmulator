@@ -1,5 +1,9 @@
 #include "Console.hpp"
 
+#include "split.hpp"
+
+#include <algorithm>
+
 Console::
 Console() :
     m_logger (Logger::get_instance()),
@@ -20,6 +24,17 @@ receive_input(std::string input)
     if (result.m_code != CommandResult::OK) {
         *m_logger << result.m_meta << "\n";
     }
+}
+
+void
+Console::
+receive_script(std::string script)
+{
+    std::vector<std::string> lines = split(script, '\n');
+
+    std::for_each(lines.begin(), lines.end(), [&](std::string line) {
+            receive_input(line);
+    });
 }
 
 std::string

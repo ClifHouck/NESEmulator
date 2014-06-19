@@ -46,6 +46,8 @@ public:
     void setController1(NESController *controller);
     void setController2(NESController *controller);
 
+    virtual Memory* clone() { return new ControllerIO(*this); }
+
 protected:
     virtual data_t  getData(address_t address);
     virtual void    setData(address_t address, data_t data);

@@ -16,9 +16,10 @@ const unsigned int NES_DISPLAY_WIDTH    = 256;
 const unsigned int NES_DISPLAY_HEIGHT   = 240;
 
 NESApp::
-NESApp() :
+NESApp(std::string script_name) :
     m_running (true),
-    m_console_window (nullptr)
+    m_console_window (nullptr),
+    m_startup_script_name (script_name)
 {
 }
 
@@ -143,14 +144,12 @@ render()
 
 NESApp::CpuWindow::
 CpuWindow(const Cpu65XX& cpu) :
-    EmuWindow("win-cpu",
+    DiagnosticWindow("win-cpu",
               "NES CPU Instrumentation",
               CONSOLE_WIDTH + 5, 5,
-              CONSOLE_WIDTH, CONSOLE_HEIGHT),
+              200, 200),
     m_cpu (cpu)
 {
-    m_sdl_renderer = SDL_CreateRenderer(m_sdl_window, -1, SDL_RENDERER_SOFTWARE);
-    checkSDLError(NULL == m_sdl_renderer, "SDL_CreateRenderer() failed: ");
 }
 
 void
@@ -166,33 +165,46 @@ render()
            << std::hex << "Y:  0x" << (int)m_cpu.Y()  << std::endl
            << std::hex << "PC: 0x" << (int)m_cpu.PC() << std::endl
            << std::hex << "S:  0x" << (int)m_cpu.S()  << std::endl;
-
-    std::string cpu_output = output.str();
-
-    // Clear the screen
-    SDL_SetRenderDrawColor(m_sdl_renderer, 0x00, 0x00, 0x00, 0xFF);
-    SDL_RenderClear(m_sdl_renderer);
-
-    SDL_Color text_color = { 255, 255, 255 };
-    SDL_Color background_color = { 0, 0, 0 };
-
-    RenderText::render_text(m_sdl_renderer, 
-            10, 10,
-            &text_color, &background_color,
-            cpu_output);
-
-    //Update the display
-    SDL_RenderPresent(m_sdl_renderer);
+    render_diagnostic_text(output.str());
 }
 
 
 NESApp::PpuWindow::
-PpuWindow() :
-    EmuWindow("win-ppu",
+PpuWindow(PPU& ppu) :
+    DiagnosticWindow("win-ppu",
               "NES PPU Instrumentation",
-              (CONSOLE_WIDTH + 5) * 2, 5,
-              CONSOLE_WIDTH, CONSOLE_HEIGHT)
+              CONSOLE_WIDTH + 205, 5,
+              300, 200),
+    m_ppu (ppu)
 {}
+
+void
+NESApp::PpuWindow::
+render()
+{
+    std::stringstream output;
+
+    std::vector<std::pair<u16_word, const char *>> registers = {
+            { PPU::CONTROL_ADDRESS,         "Control        :" },
+            { PPU::MASK_ADDRESS,            "Mask           :" },            
+            { PPU::STATUS_ADDRESS,          "Status         :" },          
+            { PPU::OAM_ADDRESS_ADDRESS,     "OAM Address    :" },     
+            { PPU::OAM_DATA_ADDRESS,        "OAM Data       :" },        
+            { PPU::OAM_DMA_ADDRESS,         "OAM DMA        :" },         
+            { PPU::SCROLL_ADDRESS,          "Scroll         :" },          
+            { PPU::SCROLL_ADDRESS_ADDRESS,  "Scroll Address :" },  
+            /* { PPU::SCROLL_DATA_ADDRESS,     "Scroll Data    :" } */     
+    };
+    
+    output << "PPU Status" << std::endl;
+
+    std::for_each(registers.begin(), registers.end(), [&](std::pair<u16_word, const char *> p) {
+            output << p.second << " " << std::hex 
+                   << (int)m_ppu.registerBlock().rawReadByte(p.first) << std::endl;
+    });
+
+    render_diagnostic_text(output.str());
+}
 
 bool 
 NESApp::
@@ -215,8 +227,10 @@ onInit()
     m_cpu_window = new CpuWindow(m_nes.cpu());    
     m_windows[m_cpu_window->id()] = m_cpu_window;
 
-    m_ppu_window = new PpuWindow();    
+    m_ppu_window = new PpuWindow(m_nes.ppu());    
     m_windows[m_ppu_window->id()] = m_ppu_window;
+
+    runStartupScript();
 /*
     if ((m_nes_display = SDL_SetVideoMode(NES_DISPLAY_WIDTH, NES_DISPLAY_HEIGHT, video->vfmt->BitsPerPixel, SDL_OPENGL)) == NULL) { 
         return false; 
@@ -242,8 +256,38 @@ onInit()
     return true;
 }
 
+void
+NESApp::
+runStartupScript()
+{
+    if (m_startup_script_name.length() == 0) {
+        return;
+    }
 
+    std::fstream script_file(m_startup_script_name.c_str(), std::ios_base::in);
 
+    // FIXME: Copy/paste from iNESFile.cpp... refactor.
+    if (script_file.is_open() && 
+        script_file.good()) {
+
+        unsigned int begin = script_file.tellg();
+        script_file.seekg(0, std::ios::end);
+        unsigned int end = script_file.tellg();
+        unsigned int file_size = end - begin;
+
+        script_file.seekg(0, std::ios::beg);
+
+        char * file_data = new char[file_size];
+        script_file.read(file_data, file_size);
+        script_file.close();
+
+        m_console.receive_script(std::string(file_data));
+    }
+    else {
+        *(Logger::get_instance()) << "NesApp::runStartupScript(): Couldn't open " 
+                                  << m_startup_script_name << " for reading!\n";
+    }
+}
 
 void 
 NESApp::
@@ -267,13 +311,16 @@ void
 NESApp::
 onLoop()
 {
+    //TODO: Measure time between frames?
+    m_nes.tick();
 }
 
 void 
 NESApp::
 onRender()
 {
-    std::for_each(m_windows.begin(), m_windows.end(), [](std::pair<unsigned int, EmuWindow*> it) { it.second->render(); });
+    std::for_each(m_windows.begin(), m_windows.end(), 
+            [](std::pair<unsigned int, EmuWindow*> it) { it.second->render(); });
 }
 
 void 

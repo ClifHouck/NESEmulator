@@ -18,31 +18,31 @@ public:
         Clock& clock);
     ~PPU();
 
-    const static unsigned int width             = 256;
-    const static unsigned int height            = 240;
-    const static unsigned int ticksPerScanline  = 341;
-    const static unsigned int memorySize        = 16 * 1024;
-    const static unsigned int spriteRamSize     = 256;
-    const static unsigned int bitmapSize        = width * height * 3;
-    const static unsigned int spriteSize        = 4;
-    const static unsigned int tileSize          = 16;
-    const static unsigned int clockDivisor      = 4;
+    const static unsigned int width;             
+    const static unsigned int height;            
+    const static unsigned int ticksPerScanline;  
+    const static unsigned int memorySize;        
+    const static unsigned int spriteRamSize;     
+    const static unsigned int bitmapSize;        
+    const static unsigned int spriteSize;        
+    const static unsigned int tileSize;          
+    const static unsigned int clockDivisor;      
 
-    const static Memory::address_t ppuStartAddress  = 0x0000;
-    const static Memory::address_t ppuEndAddress    = 0x3FFF;
+    const static Memory::address_t ppuStartAddress;  
+    const static Memory::address_t ppuEndAddress;    
 
-    const static Memory::address_t spriteStartAddress = 0x0000;
-    const static Memory::address_t spriteEndAddress   = 0x00FF;
+    const static Memory::address_t spriteStartAddress; 
+    const static Memory::address_t spriteEndAddress;   
 
-    const static u16_word CONTROL_ADDRESS           = 0x2000;
-    const static u16_word MASK_ADDRESS              = 0x2001;
-    const static u16_word STATUS_ADDRESS            = 0x2002;
-    const static u16_word OAM_ADDRESS_ADDRESS       = 0x2003;
-    const static u16_word OAM_DATA_ADDRESS          = 0x2004;
-    const static u16_word OAM_DMA_ADDRESS           = 0x4014; 
-    const static u16_word SCROLL_ADDRESS            = 0x2005;
-    const static u16_word SCROLL_ADDRESS_ADDRESS    = 0x2006;
-    const static u16_word SCROLL_DATA_ADDRESS       = 0x2007;
+    const static u16_word CONTROL_ADDRESS;           
+    const static u16_word MASK_ADDRESS;              
+    const static u16_word STATUS_ADDRESS;            
+    const static u16_word OAM_ADDRESS_ADDRESS;       
+    const static u16_word OAM_DATA_ADDRESS;          
+    const static u16_word OAM_DMA_ADDRESS;           
+    const static u16_word SCROLL_ADDRESS;            
+    const static u16_word SCROLL_ADDRESS_ADDRESS;    
+    const static u16_word SCROLL_DATA_ADDRESS;       
 
     class RegisterBlock : public Memory 
     {
@@ -55,6 +55,8 @@ public:
             m_ppu (ppu)
         {}
 
+        Memory* clone() { return new RegisterBlock(*this); }
+
     protected:
         virtual data_t getData(address_t address);
         virtual void   setData(address_t address, data_t data);
@@ -66,6 +68,7 @@ public:
     };
 
     RegisterBlock& registerBlock();
+    const RegisterBlock& registerBlock() const;
 
     void setCartridgeMemory(Memory *ppuMemory);
 
@@ -465,7 +468,7 @@ private:
     Memory  *m_spriteRAM;
 
     // Rendering that we can display.
-    float   m_bitmap[bitmapSize];
+    float*   m_bitmap;
 
     unsigned int m_currentScanline;
     unsigned int m_currentCycle;

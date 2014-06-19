@@ -37,6 +37,19 @@ struct CommandResult
 
 struct Command
 {
+    Command()
+    {}
+
+    Command(std::string keyword, 
+            CommandCode code,
+            std::string helpText,
+            int         numArgs) :
+        m_keyword (keyword),
+        m_code (code),
+        m_helpText (helpText),
+        m_numArguments (numArgs)
+    {}
+
     std::string m_keyword;
     std::string m_helpText;
     CommandCode m_code;

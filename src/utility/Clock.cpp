@@ -31,6 +31,7 @@ tick()
     });
 
     //TODO: Measure time elapsed between ticks, and make sure it matches the specific hertz (if possible).
+    // Though it may be better to do this every so often instead of every tick.
 
     m_count++;
 }

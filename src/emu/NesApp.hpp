@@ -9,14 +9,15 @@
 
 class NESApp {
     public:
-        NESApp();
+        NESApp(std::string startup_script);
         int  onExecute();
         bool onInit();
         void onEvent(SDL_Event* Event);
         void onLoop();
         void onCleanup();
-
         void onRender();
+
+        void runStartupScript();
 
         class ConsoleWindow : public EmuWindow {
             public:
@@ -34,7 +35,7 @@ class NESApp {
                 Console&      m_console;
         };
 
-        class CpuWindow : public EmuWindow {
+        class CpuWindow : public DiagnosticWindow {
             public:
                 CpuWindow(const Cpu65XX& cpu);
 
@@ -47,12 +48,16 @@ class NESApp {
                 TTF_Font*     m_font;
         };
 
-        class PpuWindow : public EmuWindow {
+        class PpuWindow : public DiagnosticWindow {
             public:
-                PpuWindow();
+                // FIXME: We should be taking a const reference here...
+                PpuWindow(PPU& ppu);
 
-                virtual void render() {}
+                virtual void render();
                 virtual void onEvent(SDL_Event* Event) {}
+
+            protected:
+                PPU& m_ppu;
         };
 
     protected:
@@ -69,6 +74,8 @@ class NESApp {
         PpuWindow*             m_ppu_window;
         EmuWindow*             m_focused_window;
         std::map<unsigned int, EmuWindow*> m_windows;
+
+        std::string m_startup_script_name;
 };
 
 #endif

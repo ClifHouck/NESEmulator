@@ -24,6 +24,8 @@ class Cpu65XX : public PoweredDevice, public ClockedDevice
 
         ~Cpu65XX();
 
+        static const u16_word RESET_ADDRESS      = 0xFFFC;
+
         static const unsigned int mainMemorySize = 64 * 1024;
         static const unsigned int clockDivisor   = 12;
 

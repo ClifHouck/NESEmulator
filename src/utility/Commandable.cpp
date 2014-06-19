@@ -1,4 +1,5 @@
 #include "Commandable.hpp"
+#include "split.hpp"
 
 #include <sstream>
 #include <algorithm>
@@ -96,14 +97,7 @@ std::vector<std::string>
 CommandDispatcher::
 parseArguments(std::string input)
 {
-    using namespace std;
-    istringstream iss(input);
-    vector<string> tokens;
-    copy(istream_iterator<string>(iss),
-         istream_iterator<string>(),
-         back_inserter<vector<string>>(tokens));
-
-    return tokens;
+    return split(input, ' ');
 }
 
 CommandResult

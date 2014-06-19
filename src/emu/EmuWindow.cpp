@@ -1,4 +1,5 @@
 #include "EmuWindow.hpp"
+#include "RenderText.hpp"
 
 const CommandCode EmuWindow::SHOW_WINDOW_COMMAND = 1;
 const CommandCode EmuWindow::HIDE_WINDOW_COMMAND = 2;
@@ -71,4 +72,24 @@ receiveCommand(CommandInput command)
     }
 
     return result;
+}
+
+void
+DiagnosticWindow::
+render_diagnostic_text(std::string output)
+{
+    // Clear the screen
+    SDL_SetRenderDrawColor(m_sdl_renderer, 0x00, 0x00, 0x00, 0xFF);
+    SDL_RenderClear(m_sdl_renderer);
+
+    SDL_Color text_color = { 255, 255, 255 };
+    SDL_Color background_color = { 0, 0, 0 };
+
+    RenderText::render_text(m_sdl_renderer, 
+            10, 10,
+            &text_color, &background_color,
+            output);
+
+    //Update the display
+    SDL_RenderPresent(m_sdl_renderer);
 }

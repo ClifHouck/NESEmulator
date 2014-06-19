@@ -2,6 +2,32 @@
 
 #include <algorithm>
 
+const unsigned int PPU::width       = 256;
+const unsigned int PPU::height      = 240;
+const unsigned int PPU::ticksPerScanline = 341;
+const unsigned int PPU::memorySize    = 16 * 1024;
+const unsigned int PPU::spriteRamSize   = 256;
+const unsigned int PPU::bitmapSize    = width * height * 3;
+const unsigned int PPU::spriteSize    = 4;
+const unsigned int PPU::tileSize     = 16;
+const unsigned int PPU::clockDivisor   = 4;
+
+const Memory::address_t PPU::ppuStartAddress = 0x0000;
+const Memory::address_t PPU::ppuEndAddress  = 0x3FFF;
+
+const Memory::address_t PPU::spriteStartAddress = 0x0000;
+const Memory::address_t PPU::spriteEndAddress  = 0x00FF;
+
+const u16_word PPU::CONTROL_ADDRESS           = 0x2000;
+const u16_word PPU::MASK_ADDRESS              = 0x2001;
+const u16_word PPU::STATUS_ADDRESS            = 0x2002;
+const u16_word PPU::OAM_ADDRESS_ADDRESS       = 0x2003;
+const u16_word PPU::OAM_DATA_ADDRESS          = 0x2004;
+const u16_word PPU::OAM_DMA_ADDRESS           = 0x4014; 
+const u16_word PPU::SCROLL_ADDRESS            = 0x2005;
+const u16_word PPU::SCROLL_ADDRESS_ADDRESS    = 0x2006;
+const u16_word PPU::SCROLL_DATA_ADDRESS       = 0x2007;
+
 PPU::
 PPU(Memory *cpuMemory, 
     Clock &clock) :
@@ -22,7 +48,7 @@ PPU(Memory *cpuMemory,
     m_scroll        (m_isFirstWrite),
     m_address       (m_isFirstWrite, m_control),
     m_data          (m_address, cpuMemory),
-    m_bitmap        (),
+    m_bitmap        (new float[bitmapSize]),
     m_memory        (new BackedMemory(ppuStartAddress, ppuEndAddress)),
     m_registerBlock (*this)
 {
@@ -47,6 +73,7 @@ PPU::
 {
     delete m_spriteRAM;
     delete m_memory;
+    delete[] m_bitmap;
 }
 
 void
@@ -74,6 +101,13 @@ tick()
 PPU::RegisterBlock&
 PPU::
 registerBlock()
+{
+    return m_registerBlock;
+}
+
+const PPU::RegisterBlock&
+PPU::
+registerBlock() const
 {
     return m_registerBlock;
 }

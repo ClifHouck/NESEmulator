@@ -17,7 +17,7 @@ Cpu65XX(Memory& memory) :
     m_A (0),
     m_X (0),
     m_Y (0),
-    m_PC (0),
+    m_PC (RESET_ADDRESS),
     m_S (initialStackValue),
     m_NMI (false),
     m_IRQ (false),
@@ -2095,6 +2095,7 @@ Cpu65XX::
 resetImpl()
 {
     //TODO...
+    m_PC = RESET_ADDRESS;
 }
 
 void
@@ -2102,6 +2103,7 @@ Cpu65XX::
 powerOnImpl()
 {
     //TODO...
+    m_PC = RESET_ADDRESS;
 }
 
 void
