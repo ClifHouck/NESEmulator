@@ -100,6 +100,7 @@ MainMemory(Memory *ppuRegisters,
     segments.push_back(ppuRegisters);
     segments.push_back(&m_apuRam);
     segments.push_back(&m_cartridgeRam);
+    // FIXME: APU & ControllerIO share some registers...
     segments.push_back(controllerIO);
     m_mappedMemory = new MappedMemory(WORK_RAM_BEGIN, CARTRIDGE_PRGROM_END, segments);
     assert(m_mappedMemory != nullptr);
@@ -141,10 +142,14 @@ Memory::address_t
 NES::MainMemory::
 correctAddress(address_t address) const
 {
+    // TODO: Modulo is expensive...
     if (address >  WORK_RAM_END &&
         address <= WORK_RAM_MIRROR_END) {
-        // TODO: Modulo is expensive...
         return address % WORK_RAM_SIZE; 
+    }
+    else if (address >  PPU_REGISTERS_END &&
+             address <= PPU_MIRROR_END) {
+        return PPU_REGISTERS_BEGIN + (address % PPU_REGISTERS_SIZE); 
     }
     return address;
 }

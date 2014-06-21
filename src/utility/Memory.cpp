@@ -3,6 +3,7 @@
 #include <cassert>
 #include <algorithm>
 
+#include <sstream>
 #include <iostream>
 
 Memory::
@@ -177,6 +178,7 @@ MappedMemory(address_t startAddress,
     m_segments (segments)
 {
     assert(segments.size() > 0);
+    std::cout << debugInfo();
 }
 
 MappedMemory::
@@ -201,6 +203,7 @@ MappedMemory::
 addSegment(Memory *segment)
 {
     assert(segment != nullptr);
+    std::cerr << "MappedMemory::addSegment(): Adding segment: " << segmentInfo(segment);
     m_segments.push_back(segment);
 }
 
@@ -210,8 +213,10 @@ removeSegment(address_t address)
 {
     std::vector<Memory*>::iterator it = findMemorySegmentIterator(address);
     if (it != m_segments.end()) {
+        std::cerr << "MappedMemory::removeSegment(): Removing segment: " << segmentInfo(*it);
         m_segments.erase(it);
     }
+    std::cerr << "MappedMemory::removeSegment(): No segment to remove at address: " << "0x" << std::hex << address << "\n";
 }
 
 Memory::data_t  
@@ -240,10 +245,11 @@ findMemorySegmentIterator(address_t address)
     for (iter = m_segments.begin(); iter != m_segments.end(); ++iter) {
         Memory *segment = *iter;
 
-        std::cout << segment->startAddress() << " " << segment->endAddress() << "\n";
+        std::cout << segmentInfo(segment); 
 
         if (address >= segment->startAddress() &&
             address <= segment->endAddress()) {
+            std::cout << "Found segment!\n";
             break;
         }
     }
@@ -263,4 +269,33 @@ findMemorySegment(address_t address)
             "MappedMemory::findMemorySegmentIterator: requested address not found!");
 
     return *iter;
+}
+
+std::string
+MappedMemory::
+segmentInfo(Memory * segment) const 
+{
+    std::stringstream output;
+    if (segment != nullptr) {
+        output << "Start: " << std::hex << "0x" << segment->startAddress() << " End: " << std::hex << "0x" << segment->endAddress() << "\n";
+    }
+    return output.str();
+}
+
+std::string
+MappedMemory::
+debugInfo() const
+{
+    std::stringstream output;
+
+    output << "=== Mapped Memory ===\n"
+           << "Size: "          << m_size << "\n"
+           << "Start Address: " << "0x" << std::hex << m_startAddress << "\n"
+           << "End Address: "   << "0x" << std::hex << m_endAddress   << "\n"
+           << "=== Segments ===\n";
+    std::for_each(m_segments.begin(), m_segments.end(), [&](Memory* segment) {
+            output << segmentInfo(segment);
+    });
+
+    return output.str();
 }

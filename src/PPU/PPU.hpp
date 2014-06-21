@@ -48,7 +48,7 @@ public:
     {
     public:
         static const address_t  baseAddress = 0x2000;
-        static const address_t  lastAddress = 0x3FFF;
+        static const address_t  lastAddress = 0x2008;
 
         RegisterBlock(PPU &ppu) : 
             Memory(baseAddress, lastAddress),

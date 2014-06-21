@@ -3,6 +3,7 @@
 
 #include "DataTypes.hpp"
 
+#include <string>
 #include <vector>
 
 class Memory
@@ -93,6 +94,9 @@ public:
     void removeSegment(address_t address);
 
     virtual Memory* clone();
+
+    std::string debugInfo() const;
+    std::string segmentInfo(Memory * segment) const;
 
 protected:
     virtual data_t  getData(address_t address);
